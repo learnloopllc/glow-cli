@@ -15,7 +15,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct ListPersonaResponse {
-    pub personas: Vec<ListPersona>,   // Vec<T> = like list[T] in Python, T[] in TS
+    pub personas: Vec<ListPersona>, // Vec<T> = like list[T] in Python, T[] in TS
     pub total_count: i64,
 }
 
@@ -23,7 +23,7 @@ pub struct ListPersonaResponse {
 pub struct ListPersona {
     pub persona_id: String,
     pub name: String,
-    pub description: Option<String>,  // Option<T> = like T | None in Python, T | null in TS
+    pub description: Option<String>, // Option<T> = like T | None in Python, T | null in TS
     pub is_inactive: bool,
 }
 
@@ -64,6 +64,7 @@ pub struct PersonaResultItem {
 // ── Delete ─────────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)] // field deserialized but not yet read
 pub struct DeletePersonaResponse {
     pub success: bool,
 }

@@ -17,7 +17,11 @@ use clap::{Parser, Subcommand};
 #[command(name = "learnloop", about = "LearnLoop CLI — manage your platform")]
 struct Cli {
     /// LearnLoop API URL (central platform)
-    #[arg(long, env = "LEARNLOOP_API_URL", default_value = "https://api.learn-loop.org")]
+    #[arg(
+        long,
+        env = "LEARNLOOP_API_URL",
+        default_value = "https://api.learn-loop.org"
+    )]
     api_url: String,
 
     /// License key for the LearnLoop API
@@ -101,7 +105,10 @@ fn main() -> Result<()> {
             LedgerCommands::Verify => cmd_ledger_verify()?,
             LedgerCommands::Status => cmd_ledger_status()?,
         },
-        Commands::Glow { instance_url, action } => {
+        Commands::Glow {
+            instance_url,
+            action,
+        } => {
             let client = api::GlowClient::new(&instance_url, cli.license_key.as_deref());
             match action {
                 GlowCommands::Personas { action } => match action {
@@ -123,7 +130,10 @@ fn main() -> Result<()> {
 
 fn cmd_login(api_url: &str) -> Result<()> {
     use colored::Colorize;
-    println!("{} Opening browser for OAuth login...", "LOGIN".green().bold());
+    println!(
+        "{} Opening browser for OAuth login...",
+        "LOGIN".green().bold()
+    );
     println!("  API: {}", api_url.dimmed());
     // TODO: Open browser → OAuth flow → store token locally
     Ok(())
@@ -141,7 +151,10 @@ fn cmd_network(api_url: &str) -> Result<()> {
             println!("  LearnLoop API: {}", "connected".green());
         }
         _ => {
-            println!("  LearnLoop API: {} (airgapped mode available)", "unreachable".red());
+            println!(
+                "  LearnLoop API: {} (airgapped mode available)",
+                "unreachable".red()
+            );
         }
     }
 
@@ -202,13 +215,21 @@ fn cmd_persona_get(client: &api::GlowClient, id: &str) -> Result<()> {
     Ok(())
 }
 
-fn cmd_persona_create(client: &api::GlowClient, name: &str, description: Option<&str>) -> Result<()> {
+fn cmd_persona_create(
+    client: &api::GlowClient,
+    name: &str,
+    description: Option<&str>,
+) -> Result<()> {
     use colored::Colorize;
 
     let response = client.persona_create(name, description)?;
     for result in &response.results {
         if result.success {
-            println!("{} Created persona {}", "OK".green().bold(), result.persona_id.dimmed());
+            println!(
+                "{} Created persona {}",
+                "OK".green().bold(),
+                result.persona_id.dimmed()
+            );
         } else {
             println!("{} {}", "FAIL".red().bold(), result.message);
         }

@@ -15,11 +15,13 @@ pub struct Entry {
 }
 
 /// Hash arbitrary data using BLAKE3
+#[allow(dead_code)] // used in tests + future ledger commands
 pub fn hash(data: &str) -> String {
     blake3::hash(data.as_bytes()).to_hex().to_string()
 }
 
 /// Create a new ledger entry, chaining it to the previous hash
+#[allow(dead_code)] // used in tests + future ledger commands
 pub fn create_entry(data: &str, prev_hash: &str) -> Entry {
     let combined = format!("{}{}", prev_hash, data);
     Entry {

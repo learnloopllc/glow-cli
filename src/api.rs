@@ -35,12 +35,14 @@ fn post_json<T: serde::de::DeserializeOwned>(
 
 // ── LearnLoop Client (central API) ────────────────────────────
 
+#[allow(dead_code)] // TODO: login, license validation, billing endpoints
 pub struct LearnLoopClient {
     base_url: String,
     http: blocking::Client,
     license_key: Option<String>,
 }
 
+#[allow(dead_code)]
 impl LearnLoopClient {
     pub fn new(base_url: &str, license_key: Option<&str>) -> Self {
         LearnLoopClient {
@@ -81,22 +83,46 @@ impl GlowClient {
     // ── Persona endpoints ──────────────────────────────────────
 
     pub fn persona_search(&self) -> Result<types::ListPersonaResponse> {
-        post_json(&self.http, &self.url("/api/v5/artifacts/personas/search"), json!({}), self.key())
+        post_json(
+            &self.http,
+            &self.url("/api/v5/artifacts/personas/search"),
+            json!({}),
+            self.key(),
+        )
     }
 
     pub fn persona_get(&self, persona_id: &str) -> Result<types::GetPersonaResponse> {
-        post_json(&self.http, &self.url("/api/v5/artifacts/personas/get"), json!({ "persona_id": persona_id }), self.key())
+        post_json(
+            &self.http,
+            &self.url("/api/v5/artifacts/personas/get"),
+            json!({ "persona_id": persona_id }),
+            self.key(),
+        )
     }
 
-    pub fn persona_create(&self, name: &str, description: Option<&str>) -> Result<types::CreatePersonaResponse> {
+    pub fn persona_create(
+        &self,
+        name: &str,
+        description: Option<&str>,
+    ) -> Result<types::CreatePersonaResponse> {
         let mut item = json!({ "name": name });
         if let Some(desc) = description {
             item["description"] = json!(desc);
         }
-        post_json(&self.http, &self.url("/api/v5/artifacts/personas/create"), json!({ "personas": [item] }), self.key())
+        post_json(
+            &self.http,
+            &self.url("/api/v5/artifacts/personas/create"),
+            json!({ "personas": [item] }),
+            self.key(),
+        )
     }
 
     pub fn persona_delete(&self, persona_id: &str) -> Result<types::DeletePersonaResponse> {
-        post_json(&self.http, &self.url("/api/v5/artifacts/personas/delete"), json!({ "persona_ids": [persona_id] }), self.key())
+        post_json(
+            &self.http,
+            &self.url("/api/v5/artifacts/personas/delete"),
+            json!({ "persona_ids": [persona_id] }),
+            self.key(),
+        )
     }
 }
