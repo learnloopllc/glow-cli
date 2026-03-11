@@ -1,124 +1,184 @@
-// main.rs — Entry point for the "glow" CLI
+// main.rs — Entry point for "learnloop" / "ll" CLI
 //
-// This CLI is an API client — it talks to the Glow server (FastAPI)
-// the same way the Next.js frontend does, just from the terminal.
+// Two APIs:
+//   - LearnLoop API (central): licensing, billing, OAuth — one instance
+//   - Glow API (instance): personas, agents, etc. — many on customer machines
+//
+// The CLI talks to both.
 
-mod api;     // our HTTP client module (like importing api.py)
-mod ledger;  // hash-based ledger service (built into the CLI)
-mod types;   // response types (like importing types.py)
+mod api;
+mod ledger;
+mod types;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "glow", about = "Glow CLI — interact with the Glow API")]
+#[command(name = "learnloop", about = "LearnLoop CLI — manage your platform")]
 struct Cli {
-    /// API base URL (e.g. https://glowbeta.learn-loop.org)
-    #[arg(long, env = "GLOW_API_URL", default_value = "http://localhost:8000")]
+    /// LearnLoop API URL (central platform)
+    #[arg(long, env = "LEARNLOOP_API_URL", default_value = "https://api.learn-loop.org")]
     api_url: String,
 
-    /// License key for authentication
-    #[arg(long, env = "GLOW_LICENSE_KEY")]
+    /// License key for the LearnLoop API
+    #[arg(long, env = "LEARNLOOP_LICENSE_KEY")]
     license_key: Option<String>,
 
     #[command(subcommand)]
     command: Commands,
 }
 
-// Top-level commands: `glow personas ...`, `glow agents ...`, etc.
-// For now, just personas as the example.
 #[derive(Subcommand)]
 enum Commands {
+    /// Authenticate with LearnLoop (OAuth)
+    Login,
+
+    /// Check network connectivity and airgapped mode status
+    Network,
+
+    /// Hash-based ledger operations
+    Ledger {
+        #[command(subcommand)]
+        action: LedgerCommands,
+    },
+
+    /// Manage a Glow instance (talks to a Glow API)
+    Glow {
+        /// Glow instance API URL
+        #[arg(long, env = "GLOW_API_URL", default_value = "http://localhost:8000")]
+        instance_url: String,
+
+        #[command(subcommand)]
+        action: GlowCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum LedgerCommands {
+    /// Verify the integrity of a ledger chain
+    Verify,
+    /// Show ledger status
+    Status,
+}
+
+// Glow subcommands — each artifact type is a subcommand
+#[derive(Subcommand)]
+enum GlowCommands {
     /// Manage personas
     Personas {
         #[command(subcommand)]
         action: PersonaCommands,
     },
+    // Future: Agents, Scenarios, Sessions, etc.
 }
 
-// Persona subcommands: `glow personas list`, `glow personas get <id>`, etc.
 #[derive(Subcommand)]
 enum PersonaCommands {
-    /// List all personas (POST /api/v5/artifacts/personas/search)
+    /// List all personas
     List,
-
-    /// Get a single persona by ID (POST /api/v5/artifacts/personas/get)
-    Get {
-        /// Persona ID (UUID)
-        id: String,
-    },
-
-    /// Create a new persona (POST /api/v5/artifacts/personas/create)
+    /// Get a single persona by ID
+    Get { id: String },
+    /// Create a new persona
     Create {
-        /// Persona name
         #[arg(long)]
         name: String,
-
-        /// Persona description
         #[arg(long)]
         description: Option<String>,
     },
-
-    /// Delete a persona (POST /api/v5/artifacts/personas/delete)
-    Delete {
-        /// Persona ID (UUID)
-        id: String,
-    },
+    /// Delete a persona
+    Delete { id: String },
 }
+
+// ── Main ───────────────────────────────────────────────────────
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    // Build the API client with the provided config
-    // This is like instantiating a class:
-    //   client = ApiClient(base_url=..., license_key=...)
-    let client = api::Client::new(
-        &cli.api_url,
-        cli.license_key.as_deref(),  // Option<String> → Option<&str>
-    );
-
     match cli.command {
-        Commands::Personas { action } => match action {
-            PersonaCommands::List => cmd_persona_list(&client)?,
-            PersonaCommands::Get { id } => cmd_persona_get(&client, &id)?,
-            PersonaCommands::Create { name, description } => {
-                cmd_persona_create(&client, &name, description.as_deref())?
-            }
-            PersonaCommands::Delete { id } => cmd_persona_delete(&client, &id)?,
+        Commands::Login => cmd_login(&cli.api_url)?,
+        Commands::Network => cmd_network(&cli.api_url)?,
+        Commands::Ledger { action } => match action {
+            LedgerCommands::Verify => cmd_ledger_verify()?,
+            LedgerCommands::Status => cmd_ledger_status()?,
         },
+        Commands::Glow { instance_url, action } => {
+            let client = api::GlowClient::new(&instance_url, cli.license_key.as_deref());
+            match action {
+                GlowCommands::Personas { action } => match action {
+                    PersonaCommands::List => cmd_persona_list(&client)?,
+                    PersonaCommands::Get { id } => cmd_persona_get(&client, &id)?,
+                    PersonaCommands::Create { name, description } => {
+                        cmd_persona_create(&client, &name, description.as_deref())?
+                    }
+                    PersonaCommands::Delete { id } => cmd_persona_delete(&client, &id)?,
+                },
+            }
+        }
     }
 
     Ok(())
 }
 
-// ── Command Implementations ────────────────────────────────────
+// ── Login ──────────────────────────────────────────────────────
 
-fn cmd_persona_list(client: &api::Client) -> Result<()> {
+fn cmd_login(api_url: &str) -> Result<()> {
+    use colored::Colorize;
+    println!("{} Opening browser for OAuth login...", "LOGIN".green().bold());
+    println!("  API: {}", api_url.dimmed());
+    // TODO: Open browser → OAuth flow → store token locally
+    Ok(())
+}
+
+// ── Network ────────────────────────────────────────────────────
+
+fn cmd_network(api_url: &str) -> Result<()> {
+    use colored::Colorize;
+    println!("{}", "Network Status".bold());
+
+    let http = reqwest::blocking::Client::new();
+    match http.get(format!("{}/health", api_url)).send() {
+        Ok(resp) if resp.status().is_success() => {
+            println!("  LearnLoop API: {}", "connected".green());
+        }
+        _ => {
+            println!("  LearnLoop API: {} (airgapped mode available)", "unreachable".red());
+        }
+    }
+
+    Ok(())
+}
+
+// ── Ledger ─────────────────────────────────────────────────────
+
+fn cmd_ledger_verify() -> Result<()> {
+    use colored::Colorize;
+    println!("{}", "Verifying ledger integrity...".green());
+    // TODO: Walk chain and verify hashes
+    Ok(())
+}
+
+fn cmd_ledger_status() -> Result<()> {
+    use colored::Colorize;
+    println!("{}", "Ledger Status".bold());
+    // TODO: Show chain length, last entry, etc.
+    Ok(())
+}
+
+// ── Glow: Personas ─────────────────────────────────────────────
+
+fn cmd_persona_list(client: &api::GlowClient) -> Result<()> {
     use colored::Colorize;
 
     let response = client.persona_search()?;
+    println!("{} ({} total)\n", "Personas".bold(), response.total_count);
 
-    println!(
-        "{} ({} total)\n",
-        "Personas".bold(),
-        response.total_count
-    );
-
-    // Print each persona as a row
     for p in &response.personas {
         let status = if p.is_inactive {
             "inactive".red().to_string()
         } else {
             "active".green().to_string()
         };
-
-        println!(
-            "  {} {} [{}]",
-            p.persona_id.dimmed(),
-            p.name.bold(),
-            status,
-        );
-
+        println!("  {} {} [{}]", p.persona_id.dimmed(), p.name.bold(), status);
         if let Some(desc) = &p.description {
             println!("    {}", desc.dimmed());
         }
@@ -127,49 +187,37 @@ fn cmd_persona_list(client: &api::Client) -> Result<()> {
     Ok(())
 }
 
-fn cmd_persona_get(client: &api::Client, id: &str) -> Result<()> {
+fn cmd_persona_get(client: &api::GlowClient, id: &str) -> Result<()> {
     use colored::Colorize;
 
     let response = client.persona_get(id)?;
-
     println!("{}", "Persona".bold());
     println!("  Name:        {}", response.names.current_name.bold());
-
     if let Some(desc) = &response.descriptions.current_description {
         println!("  Description: {}", desc);
     }
-
     println!("  Can Edit:    {}", response.can_edit);
     println!("  Group ID:    {}", response.group_id.dimmed());
 
     Ok(())
 }
 
-fn cmd_persona_create(client: &api::Client, name: &str, description: Option<&str>) -> Result<()> {
+fn cmd_persona_create(client: &api::GlowClient, name: &str, description: Option<&str>) -> Result<()> {
     use colored::Colorize;
 
     let response = client.persona_create(name, description)?;
-
     for result in &response.results {
         if result.success {
-            println!(
-                "{} Created persona {}",
-                "OK".green().bold(),
-                result.persona_id.dimmed(),
-            );
+            println!("{} Created persona {}", "OK".green().bold(), result.persona_id.dimmed());
         } else {
-            println!(
-                "{} {}",
-                "FAIL".red().bold(),
-                result.message,
-            );
+            println!("{} {}", "FAIL".red().bold(), result.message);
         }
     }
 
     Ok(())
 }
 
-fn cmd_persona_delete(client: &api::Client, id: &str) -> Result<()> {
+fn cmd_persona_delete(client: &api::GlowClient, id: &str) -> Result<()> {
     use colored::Colorize;
 
     client.persona_delete(id)?;
