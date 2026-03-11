@@ -1,0 +1,27 @@
+[package]
+name = "glow"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "glow"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive", "env"] }
+anyhow = "1"
+colored = "2"
+
+# reqwest = HTTP client (like requests in Python, fetch in TS)
+# "blocking" = synchronous mode (simpler to start with, no async needed)
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+
+# serde + serde_json = JSON serialization (like json module in Python)
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# tabled = pretty-print structs as tables in the terminal
+tabled = "0.17"
+
+# blake3 = fast cryptographic hash for the ledger service
+blake3 = "1"
