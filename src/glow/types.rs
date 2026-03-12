@@ -1,21 +1,24 @@
-// types.rs — Response types from the Glow API
+// glow/types.rs — Response types from the Glow instance API
 //
-// These mirror the Pydantic models on the server side.
-// In Python:   class ListPersonaResponse(BaseModel): ...
-// In TS:       interface ListPersonaResponse { ... }
-// In Rust:     struct ListPersonaResponse { ... } with Serialize + Deserialize
-//
+// These mirror the Pydantic models on the Glow server side.
 // We only define the fields we actually USE in the CLI.
 // serde will silently ignore any extra fields in the JSON response.
-// This means we don't have to mirror every single field from the API.
 
 use serde::{Deserialize, Serialize};
+
+// ── Health ────────────────────────────────────────────────────
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HealthResponse {
+    pub status: String,
+    pub version: Option<String>,
+}
 
 // ── List / Search ──────────────────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListPersonaResponse {
-    pub personas: Vec<ListPersona>, // Vec<T> = like list[T] in Python, T[] in TS
+    pub personas: Vec<ListPersona>,
     pub total_count: i64,
 }
 
@@ -23,7 +26,7 @@ pub struct ListPersonaResponse {
 pub struct ListPersona {
     pub persona_id: String,
     pub name: String,
-    pub description: Option<String>, // Option<T> = like T | None in Python, T | null in TS
+    pub description: Option<String>,
     pub is_inactive: bool,
 }
 
@@ -68,30 +71,23 @@ pub struct DeletePersonaResponse {
     pub success: bool,
 }
 
-// ── LearnLoop API: License ─────────────────────────────────────
+// ── Uploads ────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ValidateLicenseResponse {
-    pub valid: bool,
-    pub license: Option<LicenseInfo>,
+pub struct UploadCreateResponse {
+    pub upload_id: String,
+    pub upload_url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LicenseInfo {
-    pub id: String,
-}
-
-// ── LearnLoop API: Usage ──────────────────────────────────────
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UsageReportResponse {
-    pub success: bool,
+pub struct UploadPatchResponse {
+    pub offset: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UsageSummaryResponse {
-    pub total_simulations: i64,
-    pub unreported_simulations: i64,
+pub struct UploadStatusResponse {
+    pub offset: u64,
+    pub length: Option<u64>,
 }
 
 // ── Tests ─────────────────────────────────────────────────────
@@ -99,6 +95,22 @@ pub struct UsageSummaryResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_deserialize_health_response() {
+        let json = r#"{"status": "healthy", "version": "2.0.0"}"#;
+        let resp: HealthResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.status, "healthy");
+        assert_eq!(resp.version, Some("2.0.0".into()));
+    }
+
+    #[test]
+    fn test_deserialize_health_without_version() {
+        let json = r#"{"status": "ok"}"#;
+        let resp: HealthResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.status, "ok");
+        assert!(resp.version.is_none());
+    }
 
     #[test]
     fn test_deserialize_list_persona_response() {
@@ -178,5 +190,25 @@ mod tests {
         }"#;
         let resp: GetPersonaResponse = serde_json::from_str(json).unwrap();
         assert!(resp.descriptions.current_description.is_none());
+    }
+
+    #[test]
+    fn test_deserialize_upload_create_response() {
+        let json = r#"{"upload_id": "up-1", "upload_url": "/uploads/up-1"}"#;
+        let resp: UploadCreateResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.upload_id, "up-1");
+        assert_eq!(resp.upload_url, "/uploads/up-1");
+    }
+
+    #[test]
+    fn test_upload_status_response() {
+        let resp = UploadStatusResponse {
+            offset: 512,
+            length: Some(1024),
+        };
+        let json = serde_json::to_string(&resp).unwrap();
+        let roundtrip: UploadStatusResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(roundtrip.offset, 512);
+        assert_eq!(roundtrip.length, Some(1024));
     }
 }

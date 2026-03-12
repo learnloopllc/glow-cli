@@ -1,0 +1,773 @@
+{
+  "about": "LearnLoop CLI — manage your platform",
+  "args": [
+    {
+      "env": "LEARNLOOP_API_URL",
+      "help": "LearnLoop API URL (central platform)",
+      "long": "--api-url",
+      "name": "api_url",
+      "required": false
+    },
+    {
+      "env": "LEARNLOOP_LICENSE_KEY",
+      "help": "License key for the LearnLoop API",
+      "long": "--license-key",
+      "name": "license_key",
+      "required": false
+    },
+    {
+      "env": "LEARNLOOP_CLIENT_ID",
+      "help": "OAuth client ID",
+      "long": "--client-id",
+      "name": "client_id",
+      "required": false
+    },
+    {
+      "global": true,
+      "help": "Output in JSON format",
+      "long": "--json",
+      "name": "json",
+      "required": false
+    },
+    {
+      "global": true,
+      "help": "Skip confirmation prompts for destructive actions",
+      "long": "--yes",
+      "name": "yes",
+      "required": false,
+      "short": "-y"
+    }
+  ],
+  "name": "learnloop",
+  "subcommands": [
+    {
+      "about": "Authenticate with LearnLoop API (OAuth)",
+      "name": "login"
+    },
+    {
+      "about": "Remove stored authentication token",
+      "name": "logout"
+    },
+    {
+      "about": "Show all active login sessions",
+      "name": "sessions"
+    },
+    {
+      "about": "Show current authenticated user",
+      "name": "whoami"
+    },
+    {
+      "about": "Check network connectivity and airgapped mode status",
+      "name": "network"
+    },
+    {
+      "about": "Show connection and authentication status",
+      "name": "status"
+    },
+    {
+      "about": "License management",
+      "name": "licenses",
+      "subcommands": [
+        {
+          "about": "List all licenses",
+          "args": [
+            {
+              "help": "Only show active licenses",
+              "long": "--active",
+              "name": "active",
+              "required": false
+            }
+          ],
+          "name": "list"
+        },
+        {
+          "about": "Validate your license key",
+          "name": "validate"
+        },
+        {
+          "about": "Create a new license",
+          "args": [
+            {
+              "help": "License key string",
+              "long": "--key",
+              "name": "key",
+              "required": true
+            },
+            {
+              "help": "Expiry date (e.g. 2026-12-31)",
+              "long": "--expiry",
+              "name": "expiry",
+              "required": true
+            }
+          ],
+          "name": "create"
+        },
+        {
+          "about": "Update an existing license",
+          "args": [
+            {
+              "help": "License ID",
+              "name": "id",
+              "required": true
+            },
+            {
+              "long": "--key",
+              "name": "key",
+              "required": false
+            },
+            {
+              "long": "--expiry",
+              "name": "expiry",
+              "required": false
+            },
+            {
+              "long": "--active",
+              "name": "active",
+              "required": false
+            }
+          ],
+          "name": "update"
+        },
+        {
+          "about": "Delete a license",
+          "args": [
+            {
+              "help": "License ID",
+              "name": "id",
+              "required": true
+            }
+          ],
+          "name": "delete"
+        }
+      ]
+    },
+    {
+      "about": "Organization management",
+      "name": "orgs",
+      "subcommands": [
+        {
+          "about": "List your organizations",
+          "name": "list"
+        },
+        {
+          "about": "Create a new organization",
+          "args": [
+            {
+              "long": "--name",
+              "name": "name",
+              "required": true
+            },
+            {
+              "long": "--description",
+              "name": "description",
+              "required": false
+            }
+          ],
+          "name": "create"
+        },
+        {
+          "about": "Get organization details",
+          "args": [
+            {
+              "help": "Organization ID",
+              "name": "id",
+              "required": true
+            }
+          ],
+          "name": "get"
+        },
+        {
+          "about": "Update an organization",
+          "args": [
+            {
+              "help": "Organization ID",
+              "name": "id",
+              "required": true
+            },
+            {
+              "long": "--name",
+              "name": "name",
+              "required": false
+            },
+            {
+              "long": "--description",
+              "name": "description",
+              "required": false
+            }
+          ],
+          "name": "update"
+        },
+        {
+          "about": "Delete an organization",
+          "args": [
+            {
+              "help": "Organization ID",
+              "name": "id",
+              "required": true
+            }
+          ],
+          "name": "delete"
+        },
+        {
+          "about": "Manage organization members",
+          "args": [
+            {
+              "help": "Organization ID",
+              "name": "id",
+              "required": true
+            }
+          ],
+          "name": "members",
+          "subcommands": [
+            {
+              "about": "List members",
+              "name": "list"
+            },
+            {
+              "about": "Add a member by email",
+              "args": [
+                {
+                  "long": "--email",
+                  "name": "email",
+                  "required": true
+                }
+              ],
+              "name": "add"
+            },
+            {
+              "about": "Remove a member",
+              "args": [
+                {
+                  "help": "User ID to remove",
+                  "name": "user_id",
+                  "required": true
+                }
+              ],
+              "name": "remove"
+            }
+          ]
+        },
+        {
+          "about": "Manage organization license",
+          "args": [
+            {
+              "help": "Organization ID",
+              "name": "id",
+              "required": true
+            }
+          ],
+          "name": "license",
+          "subcommands": [
+            {
+              "about": "Show current license",
+              "name": "get"
+            },
+            {
+              "about": "Assign a license",
+              "args": [
+                {
+                  "help": "License ID to assign",
+                  "name": "license_id",
+                  "required": true
+                }
+              ],
+              "name": "set"
+            },
+            {
+              "about": "Remove the assigned license",
+              "name": "remove"
+            }
+          ]
+        },
+        {
+          "about": "List organization deployments",
+          "args": [
+            {
+              "help": "Organization ID",
+              "name": "id",
+              "required": true
+            }
+          ],
+          "name": "deployments"
+        }
+      ]
+    },
+    {
+      "about": "View usage summary for a license",
+      "args": [
+        {
+          "help": "License ID to view usage for",
+          "name": "license_id",
+          "required": true
+        }
+      ],
+      "name": "usage"
+    },
+    {
+      "about": "Deploy a new Glow instance",
+      "name": "deploy",
+      "subcommands": [
+        {
+          "about": "Create a new Glow deployment",
+          "args": [
+            {
+              "help": "License ID to deploy under",
+              "long": "--license-id",
+              "name": "license_id",
+              "required": true
+            },
+            {
+              "help": "Deployment name",
+              "long": "--name",
+              "name": "name",
+              "required": true
+            },
+            {
+              "help": "Subdomain (e.g. \"acme\" for acme.learn-loop.org)",
+              "long": "--subdomain",
+              "name": "subdomain",
+              "required": true
+            },
+            {
+              "help": "Base domain (default: learn-loop.org)",
+              "long": "--base-domain",
+              "name": "base_domain",
+              "required": false
+            },
+            {
+              "help": "Make the repo public",
+              "long": "--public",
+              "name": "public",
+              "required": false
+            }
+          ],
+          "name": "create"
+        },
+        {
+          "about": "Stop a running deployment",
+          "args": [
+            {
+              "help": "Deployment ID",
+              "name": "id",
+              "required": true
+            }
+          ],
+          "name": "stop"
+        },
+        {
+          "about": "Destroy a stopped deployment (removes repo, DNS, and marks as destroyed)",
+          "args": [
+            {
+              "help": "Deployment ID",
+              "name": "id",
+              "required": true
+            }
+          ],
+          "name": "destroy"
+        },
+        {
+          "about": "List all deployments",
+          "args": [
+            {
+              "help": "Include destroyed deployments",
+              "long": "--all",
+              "name": "all",
+              "required": false
+            }
+          ],
+          "name": "list"
+        }
+      ]
+    },
+    {
+      "about": "Billing and subscription management",
+      "name": "billing",
+      "subcommands": [
+        {
+          "about": "List available plans",
+          "name": "plans"
+        },
+        {
+          "about": "Check billing status for an organization",
+          "args": [
+            {
+              "help": "Organization ID",
+              "name": "org_id",
+              "required": true
+            }
+          ],
+          "name": "status"
+        },
+        {
+          "about": "Start checkout for a plan",
+          "args": [
+            {
+              "help": "Organization ID",
+              "name": "org_id",
+              "required": true
+            },
+            {
+              "help": "Plan ID (e.g. \"pro\")",
+              "long": "--plan",
+              "name": "plan",
+              "required": false
+            }
+          ],
+          "name": "checkout"
+        },
+        {
+          "about": "Open the billing portal",
+          "args": [
+            {
+              "help": "Organization ID",
+              "name": "org_id",
+              "required": true
+            }
+          ],
+          "name": "portal"
+        }
+      ]
+    },
+    {
+      "about": "Hash-based ledger operations",
+      "name": "ledger",
+      "subcommands": [
+        {
+          "about": "Verify the integrity of a ledger chain",
+          "args": [
+            {
+              "env": "LEARNLOOP_LEDGER_PATH",
+              "help": "Path to the ledger directory",
+              "long": "--path",
+              "name": "path",
+              "required": true
+            }
+          ],
+          "name": "verify"
+        },
+        {
+          "about": "Show ledger chain status and statistics",
+          "args": [
+            {
+              "env": "LEARNLOOP_LEDGER_PATH",
+              "help": "Path to the ledger directory",
+              "long": "--path",
+              "name": "path",
+              "required": true
+            }
+          ],
+          "name": "status"
+        },
+        {
+          "about": "Sync local ledger entries to LearnLoop API for billing",
+          "args": [
+            {
+              "env": "LEARNLOOP_LEDGER_PATH",
+              "help": "Path to the ledger directory",
+              "long": "--path",
+              "name": "path",
+              "required": true
+            }
+          ],
+          "name": "sync"
+        }
+      ]
+    },
+    {
+      "about": "Manage a Glow instance (talks to a Glow API)",
+      "args": [
+        {
+          "env": "GLOW_API_URL",
+          "help": "Glow instance API URL",
+          "long": "--instance-url",
+          "name": "instance_url",
+          "required": false
+        }
+      ],
+      "name": "glow",
+      "subcommands": [
+        {
+          "about": "Authenticate with this Glow instance (OAuth)",
+          "name": "login"
+        },
+        {
+          "about": "Remove stored token for this Glow instance",
+          "name": "logout"
+        },
+        {
+          "about": "Check Glow instance health",
+          "name": "health"
+        },
+        {
+          "about": "Manage personas (typed shortcut)",
+          "name": "personas",
+          "subcommands": [
+            {
+              "about": "List all personas",
+              "name": "list"
+            },
+            {
+              "about": "Get a single persona by ID",
+              "args": [
+                {
+                  "name": "id",
+                  "required": true
+                }
+              ],
+              "name": "get"
+            },
+            {
+              "about": "Create a new persona",
+              "args": [
+                {
+                  "long": "--name",
+                  "name": "name",
+                  "required": true
+                },
+                {
+                  "long": "--description",
+                  "name": "description",
+                  "required": false
+                }
+              ],
+              "name": "create"
+            },
+            {
+              "about": "Delete a persona",
+              "args": [
+                {
+                  "name": "id",
+                  "required": true
+                }
+              ],
+              "name": "delete"
+            }
+          ]
+        },
+        {
+          "about": "Generic artifact CRUD — works with any artifact type",
+          "args": [
+            {
+              "help": "Artifact type (e.g. personas, agents, scenarios, rubrics, sessions)",
+              "name": "artifact_type",
+              "required": true
+            },
+            {
+              "help": "Action (e.g. search, get, create, update, delete, duplicate, draft, drafts, export, refresh, docs)",
+              "name": "action",
+              "required": true
+            },
+            {
+              "help": "JSON body for the request",
+              "long": "--body",
+              "name": "body",
+              "required": false
+            }
+          ],
+          "name": "artifacts"
+        },
+        {
+          "about": "Event streaming, polling, and webhooks",
+          "name": "events",
+          "subcommands": [
+            {
+              "about": "Stream events via SSE (Server-Sent Events)",
+              "args": [
+                {
+                  "help": "Filter by artifact type",
+                  "long": "--artifact-type",
+                  "name": "artifact_type",
+                  "required": false
+                },
+                {
+                  "help": "Filter by artifact ID",
+                  "long": "--artifact-id",
+                  "name": "artifact_id",
+                  "required": false
+                },
+                {
+                  "help": "Filter by operation",
+                  "long": "--operation",
+                  "name": "operation",
+                  "required": false
+                }
+              ],
+              "name": "stream"
+            },
+            {
+              "about": "Poll for events",
+              "args": [
+                {
+                  "help": "JSON body (e.g. cursor, filters)",
+                  "long": "--body",
+                  "name": "body",
+                  "required": false
+                }
+              ],
+              "name": "poll"
+            },
+            {
+              "about": "Dispatch a webhook event",
+              "args": [
+                {
+                  "help": "JSON body for the webhook dispatch",
+                  "long": "--body",
+                  "name": "body",
+                  "required": false
+                }
+              ],
+              "name": "webhooks-dispatch"
+            }
+          ]
+        },
+        {
+          "about": "File upload operations (TUS, multipart, CSV)",
+          "name": "upload",
+          "subcommands": [
+            {
+              "about": "Create a new upload (TUS initiation)",
+              "args": [
+                {
+                  "help": "Filename",
+                  "long": "--filename",
+                  "name": "filename",
+                  "required": true
+                },
+                {
+                  "help": "MIME content type",
+                  "long": "--content-type",
+                  "name": "content_type",
+                  "required": false
+                },
+                {
+                  "help": "File size in bytes",
+                  "long": "--size",
+                  "name": "size",
+                  "required": false
+                }
+              ],
+              "name": "create"
+            },
+            {
+              "about": "Upload file data to an existing upload (TUS PATCH)",
+              "args": [
+                {
+                  "help": "Upload ID",
+                  "name": "id",
+                  "required": true
+                },
+                {
+                  "help": "Path to file to upload",
+                  "name": "file",
+                  "required": true
+                }
+              ],
+              "name": "send"
+            },
+            {
+              "about": "Check upload progress (TUS HEAD)",
+              "args": [
+                {
+                  "help": "Upload ID",
+                  "name": "id",
+                  "required": true
+                }
+              ],
+              "name": "status"
+            },
+            {
+              "about": "Download an uploaded file",
+              "args": [
+                {
+                  "help": "Upload ID",
+                  "name": "id",
+                  "required": true
+                },
+                {
+                  "help": "Output file path (default: stdout)",
+                  "long": "--output",
+                  "name": "output",
+                  "required": false,
+                  "short": "-o"
+                }
+              ],
+              "name": "download"
+            },
+            {
+              "about": "Upload a file via multipart form",
+              "args": [
+                {
+                  "help": "Path to file to upload",
+                  "name": "file",
+                  "required": true
+                }
+              ],
+              "name": "multipart"
+            },
+            {
+              "about": "Upload raw binary data",
+              "args": [
+                {
+                  "help": "Path to file to upload",
+                  "name": "file",
+                  "required": true
+                },
+                {
+                  "help": "MIME content type",
+                  "long": "--content-type",
+                  "name": "content_type",
+                  "required": false
+                }
+              ],
+              "name": "raw"
+            },
+            {
+              "about": "Parse a CSV file on the server",
+              "args": [
+                {
+                  "help": "Path to CSV file",
+                  "name": "file",
+                  "required": true
+                }
+              ],
+              "name": "csv-parse"
+            },
+            {
+              "about": "Preview upload results",
+              "name": "preview"
+            },
+            {
+              "about": "Download the upload template",
+              "args": [
+                {
+                  "help": "Output file path (default: template.csv)",
+                  "long": "--output",
+                  "name": "output",
+                  "required": false,
+                  "short": "-o"
+                }
+              ],
+              "name": "template"
+            },
+            {
+              "about": "Discover available upload types",
+              "name": "discover"
+            },
+            {
+              "about": "Finalize an upload",
+              "args": [
+                {
+                  "help": "JSON body",
+                  "long": "--body",
+                  "name": "body",
+                  "required": false
+                }
+              ],
+              "name": "finalize"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

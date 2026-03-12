@@ -1,0 +1,110 @@
+use anyhow::Result;
+use crate::config;
+use crate::output::{self, OutputMode};
+
+pub(crate) fn cmd_network(api_url: &str, mode: OutputMode) -> Result<()> {
+    use colored::Colorize;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct NetworkStatus {
+        api_url: String,
+        api_status: String,
+    }
+
+    let http = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()?;
+
+    let api_status = match http.get(format!("{}/health", api_url)).send() {
+        Ok(resp) if resp.status().is_success() => "connected",
+        _ => "unreachable",
+    };
+
+    output::print_result(
+        mode,
+        &NetworkStatus {
+            api_url: api_url.to_string(),
+            api_status: api_status.to_string(),
+        },
+        |s| {
+            println!("{}", "Network Status".bold());
+            match s.api_status.as_str() {
+                "connected" => println!("  LearnLoop API: {}", "connected".green()),
+                _ => {
+                    println!(
+                        "  LearnLoop API: {} (airgapped mode available)",
+                        "unreachable".red()
+                    );
+                    println!("    Tip: check that {} is correct", api_url.dimmed());
+                }
+            }
+        },
+    );
+    Ok(())
+}
+
+pub(crate) fn cmd_status(api_url: &str, license_key: &Option<String>, mode: OutputMode) -> Result<()> {
+    use colored::Colorize;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct StatusReport {
+        config_file: String,
+        config_exists: bool,
+        api_url: String,
+        api_status: String,
+        license_key_set: bool,
+    }
+
+    let config_path = config::Config::config_path();
+    let config_exists = config_path.exists();
+
+    let http = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()?;
+
+    let api_status = match http.get(format!("{}/health", api_url)).send() {
+        Ok(r) if r.status().is_success() => "connected",
+        _ => "unreachable",
+    };
+
+    let report = StatusReport {
+        config_file: config_path.display().to_string(),
+        config_exists,
+        api_url: api_url.to_string(),
+        api_status: api_status.to_string(),
+        license_key_set: license_key.is_some(),
+    };
+
+    output::print_result(mode, &report, |r| {
+        println!("{}", "LearnLoop Status".bold());
+        println!(
+            "  Config:      {} {}",
+            r.config_file,
+            if r.config_exists {
+                "(found)".green().to_string()
+            } else {
+                "(not found)".dimmed().to_string()
+            }
+        );
+        println!("  API URL:     {}", r.api_url);
+        println!(
+            "  API Status:  {}",
+            if r.api_status == "connected" {
+                "connected".green().to_string()
+            } else {
+                "unreachable".red().to_string()
+            }
+        );
+        println!(
+            "  License Key: {}",
+            if r.license_key_set {
+                "set".green().to_string()
+            } else {
+                "not set".yellow().to_string()
+            }
+        );
+    });
+    Ok(())
+}

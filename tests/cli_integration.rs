@@ -143,14 +143,62 @@ fn test_delete_without_yes_aborts_in_non_tty() {
 // ── JSON flag works globally ──────────────────────────────────
 
 #[test]
-fn test_json_flag_on_login() {
+fn test_login_unreachable_server_fails() {
     Command::cargo_bin("learnloop")
         .unwrap()
-        .args(["--json", "login"])
+        .args(["--api-url", "http://127.0.0.1:1", "login"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Failed to reach OIDC discovery"));
+}
+
+#[test]
+fn test_logout_no_session() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "logout"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No session found"));
+}
+
+#[test]
+fn test_sessions_empty() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .arg("sessions")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_sessions_json_output() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["--json", "sessions"])
         .assert()
         .success()
         .stdout(predicate::str::starts_with("{"))
-        .stdout(predicate::str::contains("\"status\""));
+        .stdout(predicate::str::contains("\"sessions\""));
+}
+
+#[test]
+fn test_glow_login_unreachable() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["glow", "--instance-url", "http://127.0.0.1:1", "login"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Failed to reach OIDC discovery"));
+}
+
+#[test]
+fn test_glow_logout() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["glow", "--instance-url", "http://127.0.0.1:1", "logout"])
+        .assert()
+        .success();
 }
 
 // ── Ledger commands ───────────────────────────────────────────
@@ -316,4 +364,142 @@ fn test_ledger_requires_license_key() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("License key required"));
+}
+
+// ── New commands: whoami, licenses, orgs, usage, billing ─────
+
+#[test]
+fn test_whoami_help() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["whoami", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("authenticated user"));
+}
+
+#[test]
+fn test_licenses_list_help() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["licenses", "list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("List all licenses"));
+}
+
+#[test]
+fn test_licenses_alias() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["lic", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_orgs_list_help() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["orgs", "list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("organizations"));
+}
+
+#[test]
+fn test_orgs_alias() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["org", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_orgs_members_help() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["orgs", "members", "org-1", "list", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_billing_plans_help() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["billing", "plans", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("plans"));
+}
+
+#[test]
+fn test_usage_requires_license_id() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["usage"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("LICENSE_ID"));
+}
+
+#[test]
+fn test_license_delete_without_yes_aborts() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "licenses", "delete", "lic-1"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Aborted"));
+}
+
+#[test]
+fn test_org_delete_without_yes_aborts() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "orgs", "delete", "org-1"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Aborted"));
+}
+
+#[test]
+fn test_deploy_destroy_without_yes_aborts() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "deploy", "destroy", "d-1"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Aborted"));
+}
+
+#[test]
+fn test_deploy_list_help() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["deploy", "list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("deployments"));
+}
+
+#[test]
+fn test_deploy_destroy_alias() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["deploy", "rm", "d-1"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Aborted"));
+}
+
+#[test]
+fn test_deploy_list_alias() {
+    Command::cargo_bin("learnloop")
+        .unwrap()
+        .args(["deploy", "ls", "--help"])
+        .assert()
+        .success();
 }

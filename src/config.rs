@@ -16,6 +16,7 @@ pub struct Config {
     pub api_url: Option<String>,
     pub license_key: Option<String>,
     pub glow_url: Option<String>,
+    pub client_id: Option<String>,
 }
 
 impl Config {
