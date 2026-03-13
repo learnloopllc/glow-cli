@@ -3,13 +3,19 @@
 // Priority chain (highest to lowest):
 //   CLI flag > env var > config file > hardcoded default
 //
-// Config file location: ~/.config/learnloop/config.toml
+// Config file location: ~/.config/glow/config.toml
 // In Python terms: like a pyproject.toml or .env file
 // In TS terms:     like a .rc file or config.json
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Instance {
+    pub url: String,
+}
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Config {
@@ -17,10 +23,13 @@ pub struct Config {
     pub license_key: Option<String>,
     pub glow_url: Option<String>,
     pub client_id: Option<String>,
+    pub active_instance: Option<String>,
+    #[serde(default)]
+    pub instances: HashMap<String, Instance>,
 }
 
 impl Config {
-    /// Load config from ~/.config/learnloop/config.toml.
+    /// Load config from ~/.config/glow/config.toml.
     /// Returns default config if file doesn't exist.
     pub fn load() -> Result<Self> {
         let path = Self::config_path();
@@ -38,12 +47,31 @@ impl Config {
         toml::from_str(toml_str).map_err(|e| anyhow::anyhow!("Invalid config: {}", e))
     }
 
+    /// Save config to disk
+    pub fn save(&self) -> Result<()> {
+        let path = Self::config_path();
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("Failed to create config dir: {}", parent.display()))?;
+        }
+        let toml_str =
+            toml::to_string_pretty(self).context("Failed to serialize config")?;
+        std::fs::write(&path, toml_str)
+            .with_context(|| format!("Failed to write config: {}", path.display()))
+    }
+
     /// Returns the config file path
     pub fn config_path() -> PathBuf {
         dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("learnloop")
+            .join("glow")
             .join("config.toml")
+    }
+
+    /// Resolve the active instance URL (if any)
+    pub fn active_instance_url(&self) -> Option<&str> {
+        let name = self.active_instance.as_deref()?;
+        self.instances.get(name).map(|i| i.url.as_str())
     }
 }
 
@@ -95,7 +123,7 @@ mod tests {
     #[test]
     fn test_config_path_ends_with_expected() {
         let path = Config::config_path();
-        assert!(path.ends_with("learnloop/config.toml"));
+        assert!(path.ends_with("glow/config.toml"));
     }
 
     #[test]
@@ -114,5 +142,85 @@ mod tests {
     #[test]
     fn test_resolve_option_default_fallback() {
         assert_eq!(resolve_option(None, None, "default"), "default");
+    }
+
+    #[test]
+    fn test_parse_config_with_instances() {
+        let toml = r#"
+            active_instance = "prod"
+
+            [instances.prod]
+            url = "https://glow.prod.example.com"
+
+            [instances.staging]
+            url = "https://glow.staging.example.com"
+        "#;
+        let config = Config::parse(toml).unwrap();
+        assert_eq!(config.active_instance.as_deref(), Some("prod"));
+        assert_eq!(config.instances.len(), 2);
+        assert_eq!(
+            config.instances["prod"].url,
+            "https://glow.prod.example.com"
+        );
+    }
+
+    #[test]
+    fn test_active_instance_url() {
+        let config = Config {
+            active_instance: Some("prod".into()),
+            instances: {
+                let mut m = HashMap::new();
+                m.insert(
+                    "prod".into(),
+                    Instance {
+                        url: "https://glow.prod.example.com".into(),
+                    },
+                );
+                m
+            },
+            ..Config::default()
+        };
+        assert_eq!(
+            config.active_instance_url(),
+            Some("https://glow.prod.example.com")
+        );
+    }
+
+    #[test]
+    fn test_active_instance_url_none_when_not_set() {
+        let config = Config::default();
+        assert_eq!(config.active_instance_url(), None);
+    }
+
+    #[test]
+    fn test_config_save_and_load_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+
+        let config = Config {
+            api_url: Some("https://api.test.com".into()),
+            active_instance: Some("dev".into()),
+            instances: {
+                let mut m = HashMap::new();
+                m.insert(
+                    "dev".into(),
+                    Instance {
+                        url: "http://localhost:8000".into(),
+                    },
+                );
+                m
+            },
+            ..Config::default()
+        };
+
+        // Save to temp path
+        let toml_str = toml::to_string_pretty(&config).unwrap();
+        std::fs::write(&path, &toml_str).unwrap();
+
+        // Read back
+        let contents = std::fs::read_to_string(&path).unwrap();
+        let loaded = Config::parse(&contents).unwrap();
+        assert_eq!(loaded.active_instance.as_deref(), Some("dev"));
+        assert_eq!(loaded.instances["dev"].url, "http://localhost:8000");
     }
 }

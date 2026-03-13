@@ -13,48 +13,208 @@ use std::io::Write;
 
 #[test]
 fn test_help_output() {
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("LearnLoop CLI"));
+        .stdout(predicate::str::contains("Glow CLI"));
 }
 
 #[test]
-fn test_ll_alias_works() {
-    Command::cargo_bin("ll")
+fn test_glw_alias_works() {
+    Command::cargo_bin("glw")
         .unwrap()
         .arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("LearnLoop CLI"));
+        .stdout(predicate::str::contains("Glow CLI"));
 }
 
 #[test]
 fn test_unknown_subcommand_shows_error() {
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .arg("nonsense")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Usage"));
+        .stderr(predicate::str::contains("Unknown resource 'nonsense'"))
+        .stderr(predicate::str::contains("personas"));
 }
 
-// ── Subcommand aliases ────────────────────────────────────────
+// ── Top-level Glow instance commands ─────────────────────────
 
 #[test]
-fn test_network_alias() {
-    Command::cargo_bin("learnloop")
+fn test_health_help() {
+    Command::cargo_bin("glow")
         .unwrap()
-        .args(["net", "--help"])
+        .args(["health", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("health"));
+}
+
+#[test]
+fn test_login_targets_glow_instance() {
+    // Top-level login now targets the glow instance
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--instance-url", "http://127.0.0.1:1", "login"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Failed to reach OIDC discovery"));
+}
+
+#[test]
+fn test_logout_glow_instance() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--instance-url", "http://127.0.0.1:1", "logout"])
+        .assert()
+        .success();
+}
+
+// ── Top-level identity & streaming commands ─────────────────
+
+#[test]
+fn test_context_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["context", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("context"));
+}
+
+#[test]
+fn test_emulate_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["emulate", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("TARGET_PROFILE_ID"));
+}
+
+#[test]
+fn test_unemulate_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["unemulate", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("emulat"));
+}
+
+#[test]
+fn test_generate_requires_group_id() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["generate"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("GROUP_ID"));
+}
+
+#[test]
+fn test_stream_requires_artifact_and_operation() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["stream"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--artifact"))
+        .stderr(predicate::str::contains("--operation"));
+}
+
+// ── Per-resource media operations ────────────────────────────
+
+#[test]
+fn test_media_requires_action() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["documents", "file"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Expected a media action"));
+}
+
+#[test]
+fn test_media_upload_requires_file() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["documents", "file", "upload"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--file"));
+}
+
+#[test]
+fn test_media_download_requires_id() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["documents", "image", "download"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--id"));
+}
+
+#[test]
+fn test_media_unknown_action_shows_error() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["documents", "file", "nonsense"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Unknown media action"));
+}
+
+// ── Instance management ─────────────────────────────────────
+
+#[test]
+fn test_instances_list_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["instances", "list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("configured"));
+}
+
+#[test]
+fn test_instances_alias() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["inst", "--help"])
         .assert()
         .success();
 }
 
 #[test]
-fn test_glow_alias() {
-    Command::cargo_bin("learnloop")
+fn test_instances_add_requires_url() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["instances", "add", "test-inst"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--url"));
+}
+
+#[test]
+fn test_use_unknown_instance_fails() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["use", "nonexistent"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Unknown instance"));
+}
+
+// ── Legacy glow subcommand (backward compat) ────────────────
+
+#[test]
+fn test_glow_subcommand_alias() {
+    Command::cargo_bin("glow")
         .unwrap()
         .args(["g", "--help"])
         .assert()
@@ -63,8 +223,8 @@ fn test_glow_alias() {
 }
 
 #[test]
-fn test_personas_alias() {
-    Command::cargo_bin("learnloop")
+fn test_personas_alias_via_glow() {
+    Command::cargo_bin("glow")
         .unwrap()
         .args(["g", "p", "--help"])
         .assert()
@@ -73,66 +233,8 @@ fn test_personas_alias() {
 }
 
 #[test]
-fn test_ledger_alias() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["l", "--help"])
-        .assert()
-        .success();
-}
-
-// ── Status command ────────────────────────────────────────────
-
-#[test]
-fn test_status_human_output() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "status"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("LearnLoop Status"));
-}
-
-#[test]
-fn test_status_json_output() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--json", "--api-url", "http://127.0.0.1:1", "status"])
-        .assert()
-        .success()
-        .stdout(predicate::str::starts_with("{"))
-        .stdout(predicate::str::contains("\"api_status\""))
-        .stdout(predicate::str::contains("\"config_file\""));
-}
-
-// ── Network command ───────────────────────────────────────────
-
-#[test]
-fn test_network_unreachable_doesnt_crash() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "network"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("unreachable"));
-}
-
-#[test]
-fn test_network_json_output() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--json", "--api-url", "http://127.0.0.1:1", "network"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("\"api_status\""))
-        .stdout(predicate::str::contains("\"unreachable\""));
-}
-
-// ── Delete confirmation ───────────────────────────────────────
-
-#[test]
 fn test_delete_without_yes_aborts_in_non_tty() {
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .args(["glow", "personas", "delete", "some-id"])
         .assert()
@@ -140,51 +242,9 @@ fn test_delete_without_yes_aborts_in_non_tty() {
         .stdout(predicate::str::contains("Aborted"));
 }
 
-// ── JSON flag works globally ──────────────────────────────────
-
-#[test]
-fn test_login_unreachable_server_fails() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "login"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("Failed to reach OIDC discovery"));
-}
-
-#[test]
-fn test_logout_no_session() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "logout"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("No session found"));
-}
-
-#[test]
-fn test_sessions_empty() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .arg("sessions")
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_sessions_json_output() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--json", "sessions"])
-        .assert()
-        .success()
-        .stdout(predicate::str::starts_with("{"))
-        .stdout(predicate::str::contains("\"sessions\""));
-}
-
 #[test]
 fn test_glow_login_unreachable() {
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .args(["glow", "--instance-url", "http://127.0.0.1:1", "login"])
         .assert()
@@ -194,29 +254,275 @@ fn test_glow_login_unreachable() {
 
 #[test]
 fn test_glow_logout() {
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .args(["glow", "--instance-url", "http://127.0.0.1:1", "logout"])
         .assert()
         .success();
 }
 
-// ── Ledger commands ───────────────────────────────────────────
+// ── Admin commands ───────────────────────────────────────────
+
+#[test]
+fn test_admin_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Platform administration"));
+}
+
+#[test]
+fn test_admin_login_unreachable() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "admin", "login"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Failed to reach OIDC discovery"));
+}
+
+#[test]
+fn test_admin_logout_no_session() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "admin", "logout"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No session found"));
+}
+
+#[test]
+fn test_admin_sessions_empty() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "sessions"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_admin_sessions_json_output() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--json", "admin", "sessions"])
+        .assert()
+        .success()
+        .stdout(predicate::str::starts_with("{"))
+        .stdout(predicate::str::contains("\"sessions\""));
+}
+
+#[test]
+fn test_admin_whoami_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "whoami", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("authenticated user"));
+}
+
+#[test]
+fn test_admin_network_alias() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "net", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_admin_network_unreachable_doesnt_crash() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "admin", "network"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unreachable"));
+}
+
+#[test]
+fn test_admin_network_json_output() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--json", "--api-url", "http://127.0.0.1:1", "admin", "network"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"api_status\""))
+        .stdout(predicate::str::contains("\"unreachable\""));
+}
+
+#[test]
+fn test_admin_status_human_output() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "admin", "status"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Glow Status"));
+}
+
+#[test]
+fn test_admin_status_json_output() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--json", "--api-url", "http://127.0.0.1:1", "admin", "status"])
+        .assert()
+        .success()
+        .stdout(predicate::str::starts_with("{"))
+        .stdout(predicate::str::contains("\"api_status\""))
+        .stdout(predicate::str::contains("\"config_file\""));
+}
+
+#[test]
+fn test_admin_licenses_list_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "licenses", "list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("List all licenses"));
+}
+
+#[test]
+fn test_admin_licenses_alias() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "lic", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_admin_orgs_list_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "orgs", "list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("organizations"));
+}
+
+#[test]
+fn test_admin_orgs_alias() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "org", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_admin_orgs_members_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "orgs", "members", "org-1", "list", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_admin_billing_plans_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "billing", "plans", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("plans"));
+}
+
+#[test]
+fn test_admin_usage_requires_license_id() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "usage"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("LICENSE_ID"));
+}
+
+#[test]
+fn test_admin_license_delete_without_yes_aborts() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "admin", "licenses", "delete", "lic-1"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Aborted"));
+}
+
+#[test]
+fn test_admin_org_delete_without_yes_aborts() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "admin", "orgs", "delete", "org-1"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Aborted"));
+}
+
+#[test]
+fn test_admin_deploy_destroy_without_yes_aborts() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["--api-url", "http://127.0.0.1:1", "admin", "deploy", "destroy", "d-1"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Aborted"));
+}
+
+#[test]
+fn test_admin_deploy_list_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "deploy", "list", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("deployments"));
+}
+
+#[test]
+fn test_admin_deploy_destroy_alias() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "deploy", "rm", "d-1"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Aborted"));
+}
+
+#[test]
+fn test_admin_deploy_list_alias() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "deploy", "ls", "--help"])
+        .assert()
+        .success();
+}
+
+// ── Ledger commands (top-level) ──────────────────────────────
+
+#[test]
+fn test_ledger_alias() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["l", "--help"])
+        .assert()
+        .success();
+}
 
 /// Helper: create a temp directory with valid .ledger files for testing
 fn create_test_ledger() -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
     let key = "test-key-for-integration";
 
-    // Build a 3-entry chain using the same JSON format the CLI expects
-    // We shell out to avoid importing ledger.rs internals in integration tests
     let attempts = vec![
         ("att-001", "2026-01-01T00:00:00Z", true, 90),
         ("att-002", "2026-01-02T00:00:00Z", true, 85),
         ("att-003", "2026-01-03T00:00:00Z", false, 40),
     ];
 
-    // Use blake3 directly to build the chain (matching ledger.rs logic)
     let mut prev_hash = "0".to_string();
     for (i, (id, ts, passed, score)) in attempts.iter().enumerate() {
         let attempt_json = format!(
@@ -269,7 +575,7 @@ fn create_test_ledger() -> tempfile::TempDir {
 #[test]
 fn test_ledger_verify_valid_chain() {
     let dir = create_test_ledger();
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .args([
             "--license-key",
@@ -287,7 +593,7 @@ fn test_ledger_verify_valid_chain() {
 #[test]
 fn test_ledger_verify_json_output() {
     let dir = create_test_ledger();
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .args([
             "--json",
@@ -307,7 +613,7 @@ fn test_ledger_verify_json_output() {
 #[test]
 fn test_ledger_status_shows_info() {
     let dir = create_test_ledger();
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .args([
             "--license-key",
@@ -326,7 +632,7 @@ fn test_ledger_status_shows_info() {
 #[test]
 fn test_ledger_verify_wrong_key_fails() {
     let dir = create_test_ledger();
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .args([
             "--license-key",
@@ -337,12 +643,12 @@ fn test_ledger_verify_wrong_key_fails() {
             dir.path().to_str().unwrap(),
         ])
         .assert()
-        .failure(); // exits non-zero because chain is invalid
+        .failure();
 }
 
 #[test]
 fn test_ledger_verify_nonexistent_dir_fails() {
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .args([
             "--license-key",
@@ -358,148 +664,10 @@ fn test_ledger_verify_nonexistent_dir_fails() {
 
 #[test]
 fn test_ledger_requires_license_key() {
-    Command::cargo_bin("learnloop")
+    Command::cargo_bin("glow")
         .unwrap()
         .args(["ledger", "status", "--path", "/tmp"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("License key required"));
-}
-
-// ── New commands: whoami, licenses, orgs, usage, billing ─────
-
-#[test]
-fn test_whoami_help() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["whoami", "--help"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("authenticated user"));
-}
-
-#[test]
-fn test_licenses_list_help() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["licenses", "list", "--help"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("List all licenses"));
-}
-
-#[test]
-fn test_licenses_alias() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["lic", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_orgs_list_help() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["orgs", "list", "--help"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("organizations"));
-}
-
-#[test]
-fn test_orgs_alias() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["org", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_orgs_members_help() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["orgs", "members", "org-1", "list", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn test_billing_plans_help() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["billing", "plans", "--help"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("plans"));
-}
-
-#[test]
-fn test_usage_requires_license_id() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["usage"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("LICENSE_ID"));
-}
-
-#[test]
-fn test_license_delete_without_yes_aborts() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "licenses", "delete", "lic-1"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Aborted"));
-}
-
-#[test]
-fn test_org_delete_without_yes_aborts() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "orgs", "delete", "org-1"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Aborted"));
-}
-
-#[test]
-fn test_deploy_destroy_without_yes_aborts() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "deploy", "destroy", "d-1"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Aborted"));
-}
-
-#[test]
-fn test_deploy_list_help() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["deploy", "list", "--help"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("deployments"));
-}
-
-#[test]
-fn test_deploy_destroy_alias() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["deploy", "rm", "d-1"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Aborted"));
-}
-
-#[test]
-fn test_deploy_list_alias() {
-    Command::cargo_bin("learnloop")
-        .unwrap()
-        .args(["deploy", "ls", "--help"])
-        .assert()
-        .success();
 }

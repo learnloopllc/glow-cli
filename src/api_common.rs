@@ -34,7 +34,7 @@ fn apply_auth(req: blocking::RequestBuilder, auth: Auth) -> blocking::RequestBui
 fn handle_error_status(status: reqwest::StatusCode, text: &str) -> anyhow::Error {
     match status.as_u16() {
         401 => anyhow::anyhow!(
-            "Authentication failed (HTTP 401). Run 'learnloop login' to authenticate."
+            "Authentication failed (HTTP 401). Run 'glow login' to authenticate."
         ),
         403 => anyhow::anyhow!(
             "Permission denied (HTTP 403). Your account may not have access to this resource."
@@ -59,7 +59,7 @@ pub(crate) fn api_request<T: serde::de::DeserializeOwned>(
 
     let response = req.send().with_context(|| {
         format!(
-            "Failed to connect to {}. Check your network or run 'learnloop network' to diagnose.",
+            "Failed to connect to {}. Check your network or run 'glow network' to diagnose.",
             url
         )
     })?;
@@ -91,7 +91,7 @@ pub(crate) fn api_request_raw(
 
     let response = req.send().with_context(|| {
         format!(
-            "Failed to connect to {}. Check your network or run 'learnloop network' to diagnose.",
+            "Failed to connect to {}. Check your network or run 'glow network' to diagnose.",
             url
         )
     })?;

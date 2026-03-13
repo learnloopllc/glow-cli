@@ -1,4 +1,4 @@
-// main.rs — Entry point for "learnloop" / "ll" CLI
+// main.rs — Entry point for "glow" / "glw" CLI
 //
 // Two APIs:
 //   - LearnLoop API (central): licensing, billing, OAuth — one instance
@@ -14,24 +14,29 @@ mod glow;
 mod learnloop;
 mod ledger;
 mod output;
+mod resource;
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
 use output::OutputMode;
 
 #[derive(Parser)]
-#[command(name = "learnloop", about = "LearnLoop CLI — manage your platform")]
+#[command(name = "glow", about = "Glow CLI — manage your platform")]
 struct Cli {
     /// LearnLoop API URL (central platform)
-    #[arg(long, env = "LEARNLOOP_API_URL")]
+    #[arg(long, env = "GLOW_API_URL")]
     api_url: Option<String>,
 
-    /// License key for the LearnLoop API
-    #[arg(long, env = "LEARNLOOP_LICENSE_KEY")]
+    /// Glow instance URL
+    #[arg(long, env = "GLOW_INSTANCE_URL")]
+    instance_url: Option<String>,
+
+    /// License key
+    #[arg(long, env = "GLOW_LICENSE_KEY")]
     license_key: Option<String>,
 
     /// OAuth client ID
-    #[arg(long, env = "LEARNLOOP_CLIENT_ID")]
+    #[arg(long, env = "GLOW_CLIENT_ID")]
     client_id: Option<String>,
 
     /// Output in JSON format
@@ -48,10 +53,105 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Authenticate with Glow instance (OAuth)
+    Login,
+
+    /// Remove stored authentication token for Glow instance
+    Logout,
+
+    /// Check Glow instance health
+    Health,
+
+    /// Show current user context and identity
+    Context,
+
+    /// Emulate another user profile
+    Emulate {
+        /// Target profile ID to emulate
+        target_profile_id: String,
+        /// TTL in seconds
+        #[arg(long, default_value = "120")]
+        ttl: u32,
+    },
+
+    /// Stop emulating and return to your own profile
+    Unemulate,
+
+    /// Generate content for a group
+    Generate {
+        /// Group ID to generate for
+        group_id: String,
+        /// JSON body for additional options
+        #[arg(long)]
+        body: Option<String>,
+    },
+
+    /// Stream events via SSE (Server-Sent Events)
+    Stream {
+        /// Artifact type to stream
+        #[arg(long)]
+        artifact: String,
+        /// Operation to stream (e.g. create, update, delete)
+        #[arg(long)]
+        operation: String,
+        /// Filter by entity ID
+        #[arg(long)]
+        entity_id: Option<String>,
+        /// Cursor for resuming from a position
+        #[arg(long)]
+        cursor: Option<String>,
+    },
+
+    /// Manage configured Glow instances
+    #[command(alias = "inst")]
+    Instances {
+        #[command(subcommand)]
+        action: InstanceCommands,
+    },
+
+    /// Switch to a configured Glow instance
+    Use {
+        /// Instance name (as configured with 'glow instances add')
+        name: String,
+    },
+
+    /// Hash-based ledger operations
+    #[command(alias = "l")]
+    Ledger {
+        #[command(subcommand)]
+        action: LedgerCommands,
+    },
+
+    /// Platform administration (LearnLoop management plane)
+    Admin {
+        #[command(subcommand)]
+        action: AdminCommands,
+    },
+
+    /// Interact with a resource on the Glow instance (e.g. glow personas search)
+    #[command(external_subcommand)]
+    Resource(Vec<String>),
+
+    /// Manage a Glow instance directly (talks to a Glow API)
+    #[command(alias = "g")]
+    Glow {
+        /// Glow instance API URL
+        #[arg(long, env = "GLOW_INSTANCE_URL")]
+        instance_url: Option<String>,
+
+        #[command(subcommand)]
+        action: GlowCommands,
+    },
+}
+
+// ── Admin subcommands (LearnLoop management plane) ───────────
+
+#[derive(Subcommand)]
+enum AdminCommands {
     /// Authenticate with LearnLoop API (OAuth)
     Login,
 
-    /// Remove stored authentication token
+    /// Remove stored authentication token for LearnLoop API
     Logout,
 
     /// Show all active login sessions
@@ -97,24 +197,6 @@ enum Commands {
     Billing {
         #[command(subcommand)]
         action: BillingCommands,
-    },
-
-    /// Hash-based ledger operations
-    #[command(alias = "l")]
-    Ledger {
-        #[command(subcommand)]
-        action: LedgerCommands,
-    },
-
-    /// Manage a Glow instance (talks to a Glow API)
-    #[command(alias = "g")]
-    Glow {
-        /// Glow instance API URL
-        #[arg(long, env = "GLOW_API_URL")]
-        instance_url: Option<String>,
-
-        #[command(subcommand)]
-        action: GlowCommands,
     },
 }
 
@@ -309,28 +391,50 @@ enum DeployCommands {
 }
 
 #[derive(Subcommand)]
+enum InstanceCommands {
+    /// List configured instances
+    #[command(alias = "ls")]
+    List,
+    /// Add a new instance
+    Add {
+        /// Instance name (e.g. "prod", "staging")
+        name: String,
+        /// Instance URL
+        #[arg(long)]
+        url: String,
+    },
+    /// Remove a configured instance
+    #[command(alias = "rm")]
+    Remove {
+        /// Instance name
+        name: String,
+    },
+}
+
+#[derive(Subcommand)]
 enum LedgerCommands {
     /// Verify the integrity of a ledger chain
     Verify {
         /// Path to the ledger directory
-        #[arg(long, env = "LEARNLOOP_LEDGER_PATH")]
+        #[arg(long, env = "GLOW_LEDGER_PATH")]
         path: String,
     },
     /// Show ledger chain status and statistics
     Status {
         /// Path to the ledger directory
-        #[arg(long, env = "LEARNLOOP_LEDGER_PATH")]
+        #[arg(long, env = "GLOW_LEDGER_PATH")]
         path: String,
     },
     /// Sync local ledger entries to LearnLoop API for billing
     Sync {
         /// Path to the ledger directory
-        #[arg(long, env = "LEARNLOOP_LEDGER_PATH")]
+        #[arg(long, env = "GLOW_LEDGER_PATH")]
         path: String,
     },
 }
 
-// Glow subcommands
+// ── Glow instance subcommands (legacy, being promoted to top-level) ──
+
 #[derive(Subcommand)]
 enum GlowCommands {
     /// Authenticate with this Glow instance (OAuth)
@@ -543,13 +647,25 @@ fn dump_command_spec(cmd: &clap::Command) -> serde_json::Value {
     let subs: Vec<serde_json::Value> = cmd
         .get_subcommands()
         .filter(|s| !s.is_hide_set())
-        .map(|s| dump_command_spec(s))
+        .map(dump_command_spec)
         .collect();
     if !subs.is_empty() {
         obj.insert("subcommands".into(), json!(subs));
     }
 
     serde_json::Value::Object(obj)
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+
+/// Resolve glow instance URL: --instance-url > active instance > glow_url config > default
+fn resolve_glow_url(cli_url: Option<&str>, glow_sub_url: Option<&str>, cfg: &config::Config) -> String {
+    cli_url
+        .or(glow_sub_url)
+        .or_else(|| cfg.active_instance_url())
+        .or(cfg.glow_url.as_deref())
+        .unwrap_or("http://localhost:8000")
+        .to_string()
 }
 
 // ── Main ───────────────────────────────────────────────────────
@@ -573,7 +689,7 @@ fn main() -> Result<()> {
         cfg.api_url.as_deref(),
         "https://api.learn-loop.org",
     );
-    let license_key = cli.license_key.or(cfg.license_key);
+    let license_key = cli.license_key.or(cfg.license_key.clone());
     let client_id = config::resolve_option(
         cli.client_id.as_deref(),
         cfg.client_id.as_deref(),
@@ -584,146 +700,129 @@ fn main() -> Result<()> {
     use commands::glow as glow_cmd;
 
     match cli.command {
-        Commands::Login => ll_cmd::auth::cmd_login(&api_url, &client_id, mode)?,
-        Commands::Logout => ll_cmd::auth::cmd_logout(&api_url, mode)?,
-        Commands::Sessions => ll_cmd::auth::cmd_sessions(mode)?,
-        Commands::Whoami => {
-            let ll = learnloop::LearnLoopClient::new(&api_url, license_key.as_deref());
-            ll_cmd::auth::cmd_whoami(&ll, mode)?
+        // ── Top-level Glow instance commands ─────────────────
+        Commands::Login => {
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
+                None,
+                &cfg,
+            );
+            ll_cmd::auth::cmd_login(&glow_url, &client_id, mode)?
         }
-        Commands::Network => ll_cmd::status::cmd_network(&api_url, mode)?,
-        Commands::Status => ll_cmd::status::cmd_status(&api_url, &license_key, mode)?,
-
-        Commands::Licenses { action } => {
-            let ll = learnloop::LearnLoopClient::new(&api_url, license_key.as_deref());
-            match action {
-                LicenseCommands::List { active } => {
-                    ll_cmd::licenses::cmd_license_list(&ll, active, mode)?
-                }
-                LicenseCommands::Validate => ll_cmd::licenses::cmd_license_validate(&ll, mode)?,
-                LicenseCommands::Create { key, expiry } => {
-                    ll_cmd::licenses::cmd_license_create(&ll, &key, &expiry, mode)?
-                }
-                LicenseCommands::Update {
-                    id,
-                    key,
-                    expiry,
-                    active,
-                } => ll_cmd::licenses::cmd_license_update(
-                    &ll,
-                    &id,
-                    key.as_deref(),
-                    expiry.as_deref(),
-                    active,
-                    mode,
-                )?,
-                LicenseCommands::Delete { id } => {
-                    ll_cmd::licenses::cmd_license_delete(&ll, &id, cli.yes, mode)?
-                }
-            }
+        Commands::Logout => {
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
+                None,
+                &cfg,
+            );
+            ll_cmd::auth::cmd_logout(&glow_url, mode)?
+        }
+        Commands::Health => {
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
+                None,
+                &cfg,
+            );
+            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            glow_cmd::cmd_health(&client, mode)?
+        }
+        Commands::Context => {
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
+                None,
+                &cfg,
+            );
+            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            glow_cmd::cmd_context(&client, mode)?
+        }
+        Commands::Emulate {
+            target_profile_id,
+            ttl,
+        } => {
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
+                None,
+                &cfg,
+            );
+            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            glow_cmd::cmd_emulate(&client, &target_profile_id, ttl, mode)?
+        }
+        Commands::Unemulate => {
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
+                None,
+                &cfg,
+            );
+            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            glow_cmd::cmd_unemulate(&client, mode)?
+        }
+        Commands::Generate { group_id, body } => {
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
+                None,
+                &cfg,
+            );
+            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            glow_cmd::cmd_generate(&client, &group_id, body.as_deref(), mode)?
+        }
+        Commands::Stream {
+            artifact,
+            operation,
+            entity_id,
+            cursor,
+        } => {
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
+                None,
+                &cfg,
+            );
+            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            glow_cmd::cmd_stream(
+                &client,
+                &artifact,
+                &operation,
+                entity_id.as_deref(),
+                cursor.as_deref(),
+                mode,
+            )?
         }
 
-        Commands::Orgs { action } => {
-            let ll = learnloop::LearnLoopClient::new(&api_url, license_key.as_deref());
-            match action {
-                OrgCommands::List => ll_cmd::orgs::cmd_org_list(&ll, mode)?,
-                OrgCommands::Create { name, description } => {
-                    ll_cmd::orgs::cmd_org_create(&ll, &name, description.as_deref(), mode)?
-                }
-                OrgCommands::Get { id } => ll_cmd::orgs::cmd_org_get(&ll, &id, mode)?,
-                OrgCommands::Update {
-                    id,
+        // ── Admin commands (LearnLoop management plane) ──────
+        Commands::Admin { action } => {
+            dispatch_admin(action, &api_url, &license_key, &client_id, cli.yes, mode)?
+        }
+
+        // ── Instance management ──────────────────────────────
+        Commands::Instances { action } => {
+            dispatch_instances(action, cfg, mode)?
+        }
+        Commands::Use { name } => {
+            let mut cfg = cfg;
+            if !cfg.instances.contains_key(&name) {
+                anyhow::bail!(
+                    "Unknown instance '{}'. Add it first with: glow instances add {} --url <url>",
                     name,
-                    description,
-                } => ll_cmd::orgs::cmd_org_update(
-                    &ll,
-                    &id,
-                    name.as_deref(),
-                    description.as_deref(),
-                    mode,
-                )?,
-                OrgCommands::Delete { id } => {
-                    ll_cmd::orgs::cmd_org_delete(&ll, &id, cli.yes, mode)?
-                }
-                OrgCommands::Members { id, action } => match action {
-                    OrgMemberCommands::List => ll_cmd::orgs::cmd_org_members(&ll, &id, mode)?,
-                    OrgMemberCommands::Add { email } => {
-                        ll_cmd::orgs::cmd_org_member_add(&ll, &id, &email, mode)?
-                    }
-                    OrgMemberCommands::Remove { user_id } => {
-                        ll_cmd::orgs::cmd_org_member_remove(&ll, &id, &user_id, cli.yes, mode)?
-                    }
-                },
-                OrgCommands::License { id, action } => match action {
-                    OrgLicenseCommands::Get => ll_cmd::orgs::cmd_org_license(&ll, &id, mode)?,
-                    OrgLicenseCommands::Set { license_id } => {
-                        ll_cmd::orgs::cmd_org_license_set(&ll, &id, &license_id, mode)?
-                    }
-                    OrgLicenseCommands::Remove => {
-                        ll_cmd::orgs::cmd_org_license_remove(&ll, &id, cli.yes, mode)?
-                    }
-                },
-                OrgCommands::Deployments { id } => {
-                    ll_cmd::orgs::cmd_org_deployments(&ll, &id, mode)?
-                }
-            }
-        }
-
-        Commands::Usage { license_id } => {
-            let ll = learnloop::LearnLoopClient::new(&api_url, license_key.as_deref());
-            ll_cmd::usage::cmd_usage(&ll, &license_id, mode)?
-        }
-
-        Commands::Deploy { action } => {
-            let ll = learnloop::LearnLoopClient::new(&api_url, license_key.as_deref());
-            match action {
-                DeployCommands::Create {
-                    license_id,
                     name,
-                    subdomain,
-                    base_domain,
-                    public,
-                } => ll_cmd::deploy::cmd_deploy_create(
-                    &ll,
-                    &license_id,
-                    &name,
-                    &subdomain,
-                    base_domain.as_deref(),
-                    !public,
-                    mode,
-                )?,
-                DeployCommands::Stop { id } => {
-                    ll_cmd::deploy::cmd_deploy_stop(&ll, &id, cli.yes, mode)?
-                }
-                DeployCommands::Destroy { id } => {
-                    ll_cmd::deploy::cmd_deploy_destroy(&ll, &id, cli.yes, mode)?
-                }
-                DeployCommands::List { all } => {
-                    ll_cmd::deploy::cmd_deploy_list(&ll, !all, mode)?
-                }
+                );
+            }
+            cfg.active_instance = Some(name.clone());
+            cfg.save()?;
+            if mode == OutputMode::Human {
+                use colored::Colorize;
+                println!(
+                    "{} Now using instance '{}' ({})",
+                    "OK".green().bold(),
+                    name.bold(),
+                    cfg.instances[&name].url.dimmed(),
+                );
             }
         }
 
-        Commands::Billing { action } => {
-            let ll = learnloop::LearnLoopClient::new(&api_url, license_key.as_deref());
-            match action {
-                BillingCommands::Plans => ll_cmd::billing::cmd_billing_plans(&ll, mode)?,
-                BillingCommands::Status { org_id } => {
-                    ll_cmd::billing::cmd_billing_status(&ll, &org_id, mode)?
-                }
-                BillingCommands::Checkout { org_id, plan } => {
-                    ll_cmd::billing::cmd_billing_checkout(&ll, &org_id, &plan, mode)?
-                }
-                BillingCommands::Portal { org_id } => {
-                    ll_cmd::billing::cmd_billing_portal(&ll, &org_id, mode)?
-                }
-            }
-        }
-
+        // ── Ledger (bridges both) ───────────────────────────
         Commands::Ledger { action } => {
             let key = license_key
                 .as_deref()
-                .ok_or_else(|| anyhow::anyhow!("License key required for ledger operations. Use --license-key or set LEARNLOOP_LICENSE_KEY."))?;
+                .ok_or_else(|| anyhow::anyhow!("License key required for ledger operations. Use --license-key or set GLOW_LICENSE_KEY."))?;
             match action {
                 LedgerCommands::Verify { path } => {
                     ll_cmd::ledger::cmd_ledger_verify(&path, key, mode)?
@@ -738,14 +837,26 @@ fn main() -> Result<()> {
             }
         }
 
+        // ── Generic resource dispatch ────────────────────────
+        Commands::Resource(args) => {
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
+                None,
+                &cfg,
+            );
+            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            dispatch_resource(&client, &args, mode)?
+        }
+
+        // ── Legacy glow subcommand (backward compat) ────────
         Commands::Glow {
             instance_url,
             action,
         } => {
-            let glow_url = config::resolve_option(
+            let glow_url = resolve_glow_url(
+                cli.instance_url.as_deref(),
                 instance_url.as_deref(),
-                cfg.glow_url.as_deref(),
-                "http://localhost:8000",
+                &cfg,
             );
             let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
             match action {
@@ -862,4 +973,358 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Dispatch instance management subcommands
+fn dispatch_instances(
+    action: InstanceCommands,
+    mut cfg: config::Config,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    match action {
+        InstanceCommands::List => {
+            if cfg.instances.is_empty() {
+                if mode == OutputMode::Human {
+                    println!("No instances configured. Add one with: glow instances add <name> --url <url>");
+                } else {
+                    println!("{}", serde_json::json!({ "instances": {}, "active": null }));
+                }
+            } else if mode == OutputMode::Json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "instances": &cfg.instances,
+                        "active": &cfg.active_instance,
+                    })
+                );
+            } else {
+                println!("{}\n", "Configured Instances".bold());
+                for (name, inst) in &cfg.instances {
+                    let active = if cfg.active_instance.as_deref() == Some(name.as_str()) {
+                        " (active)".green().to_string()
+                    } else {
+                        String::new()
+                    };
+                    println!("  {} → {}{}", name.bold(), inst.url.dimmed(), active);
+                }
+            }
+        }
+        InstanceCommands::Add { name, url } => {
+            cfg.instances.insert(
+                name.clone(),
+                config::Instance {
+                    url: url.trim_end_matches('/').to_string(),
+                },
+            );
+            // If this is the first instance, auto-activate it
+            if cfg.instances.len() == 1 {
+                cfg.active_instance = Some(name.clone());
+            }
+            cfg.save()?;
+            if mode == OutputMode::Human {
+                println!("{} Added instance '{}' ({})", "OK".green().bold(), name.bold(), url.dimmed());
+            }
+        }
+        InstanceCommands::Remove { name } => {
+            if cfg.instances.remove(&name).is_none() {
+                anyhow::bail!("Instance '{}' not found", name);
+            }
+            if cfg.active_instance.as_deref() == Some(name.as_str()) {
+                cfg.active_instance = None;
+            }
+            cfg.save()?;
+            if mode == OutputMode::Human {
+                println!("{} Removed instance '{}'", "OK".green().bold(), name.bold());
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Dispatch admin subcommands (LearnLoop management plane)
+fn dispatch_admin(
+    action: AdminCommands,
+    api_url: &str,
+    license_key: &Option<String>,
+    client_id: &str,
+    yes: bool,
+    mode: OutputMode,
+) -> Result<()> {
+    use commands::learnloop as ll_cmd;
+
+    match action {
+        AdminCommands::Login => ll_cmd::auth::cmd_login(api_url, client_id, mode)?,
+        AdminCommands::Logout => ll_cmd::auth::cmd_logout(api_url, mode)?,
+        AdminCommands::Sessions => ll_cmd::auth::cmd_sessions(mode)?,
+        AdminCommands::Whoami => {
+            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            ll_cmd::auth::cmd_whoami(&ll, mode)?
+        }
+        AdminCommands::Network => ll_cmd::status::cmd_network(api_url, mode)?,
+        AdminCommands::Status => ll_cmd::status::cmd_status(api_url, license_key, mode)?,
+
+        AdminCommands::Licenses { action } => {
+            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            match action {
+                LicenseCommands::List { active } => {
+                    ll_cmd::licenses::cmd_license_list(&ll, active, mode)?
+                }
+                LicenseCommands::Validate => ll_cmd::licenses::cmd_license_validate(&ll, mode)?,
+                LicenseCommands::Create { key, expiry } => {
+                    ll_cmd::licenses::cmd_license_create(&ll, &key, &expiry, mode)?
+                }
+                LicenseCommands::Update {
+                    id,
+                    key,
+                    expiry,
+                    active,
+                } => ll_cmd::licenses::cmd_license_update(
+                    &ll,
+                    &id,
+                    key.as_deref(),
+                    expiry.as_deref(),
+                    active,
+                    mode,
+                )?,
+                LicenseCommands::Delete { id } => {
+                    ll_cmd::licenses::cmd_license_delete(&ll, &id, yes, mode)?
+                }
+            }
+        }
+
+        AdminCommands::Orgs { action } => {
+            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            match action {
+                OrgCommands::List => ll_cmd::orgs::cmd_org_list(&ll, mode)?,
+                OrgCommands::Create { name, description } => {
+                    ll_cmd::orgs::cmd_org_create(&ll, &name, description.as_deref(), mode)?
+                }
+                OrgCommands::Get { id } => ll_cmd::orgs::cmd_org_get(&ll, &id, mode)?,
+                OrgCommands::Update {
+                    id,
+                    name,
+                    description,
+                } => ll_cmd::orgs::cmd_org_update(
+                    &ll,
+                    &id,
+                    name.as_deref(),
+                    description.as_deref(),
+                    mode,
+                )?,
+                OrgCommands::Delete { id } => {
+                    ll_cmd::orgs::cmd_org_delete(&ll, &id, yes, mode)?
+                }
+                OrgCommands::Members { id, action } => match action {
+                    OrgMemberCommands::List => ll_cmd::orgs::cmd_org_members(&ll, &id, mode)?,
+                    OrgMemberCommands::Add { email } => {
+                        ll_cmd::orgs::cmd_org_member_add(&ll, &id, &email, mode)?
+                    }
+                    OrgMemberCommands::Remove { user_id } => {
+                        ll_cmd::orgs::cmd_org_member_remove(&ll, &id, &user_id, yes, mode)?
+                    }
+                },
+                OrgCommands::License { id, action } => match action {
+                    OrgLicenseCommands::Get => ll_cmd::orgs::cmd_org_license(&ll, &id, mode)?,
+                    OrgLicenseCommands::Set { license_id } => {
+                        ll_cmd::orgs::cmd_org_license_set(&ll, &id, &license_id, mode)?
+                    }
+                    OrgLicenseCommands::Remove => {
+                        ll_cmd::orgs::cmd_org_license_remove(&ll, &id, yes, mode)?
+                    }
+                },
+                OrgCommands::Deployments { id } => {
+                    ll_cmd::orgs::cmd_org_deployments(&ll, &id, mode)?
+                }
+            }
+        }
+
+        AdminCommands::Usage { license_id } => {
+            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            ll_cmd::usage::cmd_usage(&ll, &license_id, mode)?
+        }
+
+        AdminCommands::Deploy { action } => {
+            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            match action {
+                DeployCommands::Create {
+                    license_id,
+                    name,
+                    subdomain,
+                    base_domain,
+                    public,
+                } => ll_cmd::deploy::cmd_deploy_create(
+                    &ll,
+                    &license_id,
+                    &name,
+                    &subdomain,
+                    base_domain.as_deref(),
+                    !public,
+                    mode,
+                )?,
+                DeployCommands::Stop { id } => {
+                    ll_cmd::deploy::cmd_deploy_stop(&ll, &id, yes, mode)?
+                }
+                DeployCommands::Destroy { id } => {
+                    ll_cmd::deploy::cmd_deploy_destroy(&ll, &id, yes, mode)?
+                }
+                DeployCommands::List { all } => {
+                    ll_cmd::deploy::cmd_deploy_list(&ll, !all, mode)?
+                }
+            }
+        }
+
+        AdminCommands::Billing { action } => {
+            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            match action {
+                BillingCommands::Plans => ll_cmd::billing::cmd_billing_plans(&ll, mode)?,
+                BillingCommands::Status { org_id } => {
+                    ll_cmd::billing::cmd_billing_status(&ll, &org_id, mode)?
+                }
+                BillingCommands::Checkout { org_id, plan } => {
+                    ll_cmd::billing::cmd_billing_checkout(&ll, &org_id, &plan, mode)?
+                }
+                BillingCommands::Portal { org_id } => {
+                    ll_cmd::billing::cmd_billing_portal(&ll, &org_id, mode)?
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Dispatch generic resource commands: glow <resource> <action> [--body JSON] [extra args]
+/// Also handles media subcommands: glow <resource> <media_type> <action> [flags]
+fn dispatch_resource(
+    client: &glow::GlowClient,
+    args: &[String],
+    mode: OutputMode,
+) -> Result<()> {
+    if args.is_empty() {
+        anyhow::bail!("Expected a resource name. Run 'glow --help' for usage.");
+    }
+
+    let resource_slug = &args[0];
+    let resource = resource::Resource::from_slug(resource_slug)
+        .ok_or_else(|| anyhow::anyhow!("{}", resource::unknown_resource_error(resource_slug)))?;
+
+    if args.len() < 2 {
+        anyhow::bail!(
+            "Expected an action for resource '{}'. Example: glow {} search",
+            resource.slug(),
+            resource.slug(),
+        );
+    }
+
+    // Check if second arg is a media type (file, image, text, audio, video)
+    if let Some(media) = resource::MediaType::from_str(&args[1]) {
+        return dispatch_media(client, resource.slug(), media, &args[2..], mode);
+    }
+
+    let action = &args[1];
+    let body = parse_body_flag(&args[2..])?;
+
+    commands::glow::cmd_resource_action(client, resource.slug(), action, body.as_deref(), mode)
+}
+
+/// Dispatch per-resource media operations: glow <resource> <media> <action> [flags]
+fn dispatch_media(
+    client: &glow::GlowClient,
+    resource: &str,
+    media: resource::MediaType,
+    args: &[String],
+    mode: OutputMode,
+) -> Result<()> {
+    use commands::glow as glow_cmd;
+
+    if args.is_empty() {
+        anyhow::bail!(
+            "Expected a media action. Available: upload, download, create, chunk, status, finalize, discover, preview"
+        );
+    }
+
+    let action = args[0].as_str();
+    let rest = &args[1..];
+
+    match action {
+        "upload" => {
+            let file = parse_flag(rest, "--file")?
+                .ok_or_else(|| anyhow::anyhow!("--file <path> is required for upload"))?;
+            glow_cmd::cmd_media_upload(client, resource, media.slug(), &file, mode)
+        }
+        "download" => {
+            let id = parse_flag(rest, "--id")?
+                .ok_or_else(|| anyhow::anyhow!("--id <upload_id> is required for download"))?;
+            let output = parse_flag(rest, "--output")?;
+            glow_cmd::cmd_media_download(client, resource, media.slug(), &id, output.as_deref(), mode)
+        }
+        "create" => {
+            let filename = parse_flag(rest, "--filename")?
+                .ok_or_else(|| anyhow::anyhow!("--filename is required for TUS create"))?;
+            let size = parse_flag(rest, "--size")?
+                .map(|s| s.parse::<u64>())
+                .transpose()
+                .map_err(|_| anyhow::anyhow!("--size must be a number"))?;
+            glow_cmd::cmd_media_create(client, resource, media.slug(), &filename, size, mode)
+        }
+        "chunk" => {
+            let id = parse_flag(rest, "--id")?
+                .ok_or_else(|| anyhow::anyhow!("--id <upload_id> is required for chunk"))?;
+            let file = parse_flag(rest, "--file")?
+                .ok_or_else(|| anyhow::anyhow!("--file <path> is required for chunk"))?;
+            let offset = parse_flag(rest, "--offset")?
+                .map(|s| s.parse::<u64>())
+                .transpose()
+                .map_err(|_| anyhow::anyhow!("--offset must be a number"))?
+                .unwrap_or(0);
+            glow_cmd::cmd_media_chunk(client, resource, media.slug(), &id, &file, offset, mode)
+        }
+        "status" => {
+            let id = parse_flag(rest, "--id")?
+                .ok_or_else(|| anyhow::anyhow!("--id <upload_id> is required for status"))?;
+            glow_cmd::cmd_media_status(client, resource, media.slug(), &id, mode)
+        }
+        "finalize" => {
+            let id = parse_flag(rest, "--id")?
+                .ok_or_else(|| anyhow::anyhow!("--id <upload_id> is required for finalize"))?;
+            let body = parse_body_flag(rest)?;
+            glow_cmd::cmd_media_finalize(client, resource, media.slug(), &id, body.as_deref(), mode)
+        }
+        "discover" => {
+            let id = parse_flag(rest, "--id")?;
+            glow_cmd::cmd_media_discover(client, resource, media.slug(), id.as_deref(), mode)
+        }
+        "preview" => {
+            let id = parse_flag(rest, "--id")?
+                .ok_or_else(|| anyhow::anyhow!("--id <upload_id> is required for preview"))?;
+            glow_cmd::cmd_media_preview(client, resource, media.slug(), &id, mode)
+        }
+        other => anyhow::bail!(
+            "Unknown media action '{}'. Available: upload, download, create, chunk, status, finalize, discover, preview",
+            other,
+        ),
+    }
+}
+
+/// Parse --body <json> from a slice of extra args
+fn parse_body_flag(args: &[String]) -> Result<Option<String>> {
+    parse_flag(args, "--body")
+}
+
+/// Parse a --flag <value> pair from a slice of extra args
+fn parse_flag(args: &[String], flag: &str) -> Result<Option<String>> {
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == flag {
+            if i + 1 < args.len() {
+                return Ok(Some(args[i + 1].clone()));
+            } else {
+                anyhow::bail!("{} requires a value", flag);
+            }
+        }
+        i += 1;
+    }
+    Ok(None)
 }

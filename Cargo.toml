@@ -1,17 +1,17 @@
 [package]
-name = "learnloop"
+name = "glow-cli"
 version = "0.1.0"
 edition = "2021"
-default-run = "learnloop"
+default-run = "glow"
 
-# Two binaries: "learnloop" (full name) and "ll" (short alias)
+# Two binaries: "glow" (full name) and "glw" (short alias)
 # Both point to the same code — like having a symlink
 [[bin]]
-name = "learnloop"
+name = "glow"
 path = "src/main.rs"
 
 [[bin]]
-name = "ll"
+name = "glw"
 path = "src/main.rs"
 
 [dependencies]

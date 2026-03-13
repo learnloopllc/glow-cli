@@ -1,8 +1,8 @@
-# LearnLoop CLI — Development Makefile
+# Glow CLI — Development Makefile
 #
 # Quick reference:
 #   make          → build debug
-#   make run      → build + run (pass ARGS="glow personas list")
+#   make run      → build + run (pass ARGS="personas list")
 #   make test     → run all tests
 #   make check    → fmt + clippy + test (same as CI)
 #   make release  → optimized build
@@ -46,7 +46,7 @@ check: fmt clippy test
 release:
 	cargo build --release
 	@echo "\nBinaries:"
-	@ls -lh target/release/learnloop target/release/ll
+	@ls -lh target/release/glow target/release/glw
 
 # Install both binaries to ~/.cargo/bin
 install:

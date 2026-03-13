@@ -30,10 +30,10 @@ pub(crate) fn cmd_network(api_url: &str, mode: OutputMode) -> Result<()> {
         |s| {
             println!("{}", "Network Status".bold());
             match s.api_status.as_str() {
-                "connected" => println!("  LearnLoop API: {}", "connected".green()),
+                "connected" => println!("  Glow API: {}", "connected".green()),
                 _ => {
                     println!(
-                        "  LearnLoop API: {} (airgapped mode available)",
+                        "  Glow API: {} (airgapped mode available)",
                         "unreachable".red()
                     );
                     println!("    Tip: check that {} is correct", api_url.dimmed());
@@ -78,7 +78,7 @@ pub(crate) fn cmd_status(api_url: &str, license_key: &Option<String>, mode: Outp
     };
 
     output::print_result(mode, &report, |r| {
-        println!("{}", "LearnLoop Status".bold());
+        println!("{}", "Glow Status".bold());
         println!(
             "  Config:      {} {}",
             r.config_file,

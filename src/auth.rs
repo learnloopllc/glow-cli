@@ -65,7 +65,7 @@ pub struct TokenStore {
 fn tokens_path() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("learnloop")
+        .join("glow")
         .join("tokens.json")
 }
 
@@ -91,7 +91,7 @@ pub fn get_token(server_url: &str) -> Result<StoredToken> {
         .get(&normalized)
         .cloned()
         .ok_or_else(|| anyhow::anyhow!(
-            "Not logged in to {}. Run 'learnloop login' to authenticate.",
+            "Not logged in to {}. Run 'glow login' to authenticate.",
             server_url
         ))
 }
@@ -276,7 +276,7 @@ fn wait_for_callback(listener: &TcpListener, expected_state: &str) -> Result<Str
 /// Send a minimal HTML response back to the browser
 fn send_html(stream: &mut std::net::TcpStream, body: &str) {
     let html = format!(
-        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>LearnLoop</title>\
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Glow</title>\
          <style>body{{font-family:system-ui;max-width:480px;margin:80px auto;text-align:center}}</style>\
          </head><body>{}</body></html>",
         body

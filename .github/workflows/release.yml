@@ -51,21 +51,21 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../learnloop-${{ matrix.target }}.tar.gz learnloop ll
+          tar czf ../../../glow-${{ matrix.target }}.tar.gz glow glw
           cd ../../..
 
       - name: Package (windows)
         if: runner.os == 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ../../../learnloop-${{ matrix.target }}.zip learnloop.exe ll.exe
+          7z a ../../../glow-${{ matrix.target }}.zip glow.exe glw.exe
           cd ../../..
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: learnloop-${{ matrix.target }}
-          path: learnloop-${{ matrix.target }}.*
+          name: glow-${{ matrix.target }}
+          path: glow-${{ matrix.target }}.*
 
   release:
     name: Create GitHub Release
