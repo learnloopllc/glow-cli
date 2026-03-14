@@ -131,17 +131,6 @@ enum Commands {
     /// Interact with a resource on the Glow instance (e.g. glow personas search)
     #[command(external_subcommand)]
     Resource(Vec<String>),
-
-    /// Manage a Glow instance directly (talks to a Glow API)
-    #[command(alias = "g")]
-    Glow {
-        /// Glow instance API URL
-        #[arg(long, env = "GLOW_INSTANCE_URL")]
-        instance_url: Option<String>,
-
-        #[command(subcommand)]
-        action: GlowCommands,
-    },
 }
 
 // ── Admin subcommands (LearnLoop management plane) ───────────
@@ -433,173 +422,6 @@ enum LedgerCommands {
     },
 }
 
-// ── Glow instance subcommands (legacy, being promoted to top-level) ──
-
-#[derive(Subcommand)]
-enum GlowCommands {
-    /// Authenticate with this Glow instance (OAuth)
-    Login,
-
-    /// Remove stored token for this Glow instance
-    Logout,
-
-    /// Check Glow instance health
-    Health,
-
-    /// Manage personas (typed shortcut)
-    #[command(alias = "p")]
-    Personas {
-        #[command(subcommand)]
-        action: PersonaCommands,
-    },
-
-    /// Generic artifact CRUD — works with any artifact type
-    #[command(alias = "a")]
-    Artifacts {
-        /// Artifact type (e.g. personas, agents, scenarios, rubrics, sessions)
-        artifact_type: String,
-        /// Action (e.g. search, get, create, update, delete, duplicate, draft, drafts, export, refresh, docs)
-        action: String,
-        /// JSON body for the request
-        #[arg(long)]
-        body: Option<String>,
-    },
-
-    /// Event streaming, polling, and webhooks
-    Events {
-        #[command(subcommand)]
-        action: EventCommands,
-    },
-
-    /// File upload operations (TUS, multipart, CSV)
-    #[command(alias = "up")]
-    Upload {
-        #[command(subcommand)]
-        action: UploadCommands,
-    },
-}
-
-#[derive(Subcommand)]
-enum PersonaCommands {
-    /// List all personas
-    #[command(alias = "ls")]
-    List,
-    /// Get a single persona by ID
-    Get { id: String },
-    /// Create a new persona
-    #[command(alias = "new")]
-    Create {
-        #[arg(long)]
-        name: String,
-        #[arg(long)]
-        description: Option<String>,
-    },
-    /// Delete a persona
-    #[command(aliases = ["rm", "remove"])]
-    Delete { id: String },
-}
-
-#[derive(Subcommand)]
-enum EventCommands {
-    /// Stream events via SSE (Server-Sent Events)
-    Stream {
-        /// Filter by artifact type
-        #[arg(long)]
-        artifact_type: Option<String>,
-        /// Filter by artifact ID
-        #[arg(long)]
-        artifact_id: Option<String>,
-        /// Filter by operation
-        #[arg(long)]
-        operation: Option<String>,
-    },
-    /// Poll for events
-    Poll {
-        /// JSON body (e.g. cursor, filters)
-        #[arg(long)]
-        body: Option<String>,
-    },
-    /// Dispatch a webhook event
-    #[command(name = "webhooks-dispatch")]
-    WebhooksDispatch {
-        /// JSON body for the webhook dispatch
-        #[arg(long)]
-        body: Option<String>,
-    },
-}
-
-#[derive(Subcommand)]
-enum UploadCommands {
-    /// Create a new upload (TUS initiation)
-    #[command(alias = "new")]
-    Create {
-        /// Filename
-        #[arg(long)]
-        filename: String,
-        /// MIME content type
-        #[arg(long)]
-        content_type: Option<String>,
-        /// File size in bytes
-        #[arg(long)]
-        size: Option<u64>,
-    },
-    /// Upload file data to an existing upload (TUS PATCH)
-    Send {
-        /// Upload ID
-        id: String,
-        /// Path to file to upload
-        file: String,
-    },
-    /// Check upload progress (TUS HEAD)
-    Status {
-        /// Upload ID
-        id: String,
-    },
-    /// Download an uploaded file
-    Download {
-        /// Upload ID
-        id: String,
-        /// Output file path (default: stdout)
-        #[arg(long, short)]
-        output: Option<String>,
-    },
-    /// Upload a file via multipart form
-    Multipart {
-        /// Path to file to upload
-        file: String,
-    },
-    /// Upload raw binary data
-    Raw {
-        /// Path to file to upload
-        file: String,
-        /// MIME content type
-        #[arg(long)]
-        content_type: Option<String>,
-    },
-    /// Parse a CSV file on the server
-    #[command(name = "csv-parse")]
-    CsvParse {
-        /// Path to CSV file
-        file: String,
-    },
-    /// Preview upload results
-    Preview,
-    /// Download the upload template
-    Template {
-        /// Output file path (default: template.csv)
-        #[arg(long, short)]
-        output: Option<String>,
-    },
-    /// Discover available upload types
-    Discover,
-    /// Finalize an upload
-    Finalize {
-        /// JSON body
-        #[arg(long)]
-        body: Option<String>,
-    },
-}
-
 // ── CLI spec generation ───────────────────────────────────────
 
 fn dump_command_spec(cmd: &clap::Command) -> serde_json::Value {
@@ -659,9 +481,8 @@ fn dump_command_spec(cmd: &clap::Command) -> serde_json::Value {
 // ── Helpers ──────────────────────────────────────────────────
 
 /// Resolve glow instance URL: --instance-url > active instance > glow_url config > default
-fn resolve_glow_url(cli_url: Option<&str>, glow_sub_url: Option<&str>, cfg: &config::Config) -> String {
+fn resolve_glow_url(cli_url: Option<&str>, cfg: &config::Config) -> String {
     cli_url
-        .or(glow_sub_url)
         .or_else(|| cfg.active_instance_url())
         .or(cfg.glow_url.as_deref())
         .unwrap_or("http://localhost:8000")
@@ -674,7 +495,54 @@ fn main() -> Result<()> {
     // Hidden: dump CLI spec as JSON for docs generation
     if std::env::args().any(|a| a == "--dump-cli-spec") {
         let cmd = Cli::command();
-        let spec = dump_command_spec(&cmd);
+        let mut spec = dump_command_spec(&cmd);
+
+        // Inject dynamic resource definitions (not captured by clap)
+        if let Some(obj) = spec.as_object_mut() {
+            use serde_json::json;
+
+            let resources: Vec<serde_json::Value> = resource::Resource::all()
+                .iter()
+                .map(|r| json!({ "slug": r.slug(), "about": r.about() }))
+                .collect();
+            obj.insert("resources".into(), json!(resources));
+
+            let media_types: Vec<&str> = resource::MediaType::all_slugs().to_vec();
+            obj.insert("media_types".into(), json!(media_types));
+
+            obj.insert("media_actions".into(), json!([
+                { "name": "upload", "about": "Upload a file via multipart form", "args": [
+                    { "name": "file", "long": "--file", "required": true, "help": "Path to file to upload" }
+                ]},
+                { "name": "download", "about": "Download a media file", "args": [
+                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" },
+                    { "name": "output", "long": "--output", "required": false, "help": "Output file path (stdout if omitted)" }
+                ]},
+                { "name": "create", "about": "Initiate a TUS resumable upload", "args": [
+                    { "name": "filename", "long": "--filename", "required": true, "help": "Filename for the upload" },
+                    { "name": "size", "long": "--size", "required": false, "help": "Total file size in bytes" }
+                ]},
+                { "name": "chunk", "about": "Upload a chunk for a TUS upload", "args": [
+                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" },
+                    { "name": "file", "long": "--file", "required": true, "help": "Path to chunk data" },
+                    { "name": "offset", "long": "--offset", "required": false, "help": "Byte offset (default: 0)" }
+                ]},
+                { "name": "status", "about": "Check TUS upload status", "args": [
+                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" }
+                ]},
+                { "name": "finalize", "about": "Finalize a TUS upload", "args": [
+                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" },
+                    { "name": "body", "long": "--body", "required": false, "help": "Optional JSON body" }
+                ]},
+                { "name": "discover", "about": "Discover available upload types", "args": [
+                    { "name": "id", "long": "--id", "required": false, "help": "Optional upload ID" }
+                ]},
+                { "name": "preview", "about": "Preview a media file", "args": [
+                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" }
+                ]}
+            ]));
+        }
+
         println!("{}", serde_json::to_string_pretty(&spec)?);
         return Ok(());
     }
@@ -702,36 +570,20 @@ fn main() -> Result<()> {
     match cli.command {
         // ── Top-level Glow instance commands ─────────────────
         Commands::Login => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                None,
-                &cfg,
-            );
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             ll_cmd::auth::cmd_login(&glow_url, &client_id, mode)?
         }
         Commands::Logout => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                None,
-                &cfg,
-            );
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             ll_cmd::auth::cmd_logout(&glow_url, mode)?
         }
         Commands::Health => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                None,
-                &cfg,
-            );
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
             glow_cmd::cmd_health(&client, mode)?
         }
         Commands::Context => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                None,
-                &cfg,
-            );
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
             glow_cmd::cmd_context(&client, mode)?
         }
@@ -739,29 +591,17 @@ fn main() -> Result<()> {
             target_profile_id,
             ttl,
         } => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                None,
-                &cfg,
-            );
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
             glow_cmd::cmd_emulate(&client, &target_profile_id, ttl, mode)?
         }
         Commands::Unemulate => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                None,
-                &cfg,
-            );
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
             glow_cmd::cmd_unemulate(&client, mode)?
         }
         Commands::Generate { group_id, body } => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                None,
-                &cfg,
-            );
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
             glow_cmd::cmd_generate(&client, &group_id, body.as_deref(), mode)?
         }
@@ -771,11 +611,7 @@ fn main() -> Result<()> {
             entity_id,
             cursor,
         } => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                None,
-                &cfg,
-            );
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
             glow_cmd::cmd_stream(
                 &client,
@@ -839,136 +675,9 @@ fn main() -> Result<()> {
 
         // ── Generic resource dispatch ────────────────────────
         Commands::Resource(args) => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                None,
-                &cfg,
-            );
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
             dispatch_resource(&client, &args, mode)?
-        }
-
-        // ── Legacy glow subcommand (backward compat) ────────
-        Commands::Glow {
-            instance_url,
-            action,
-        } => {
-            let glow_url = resolve_glow_url(
-                cli.instance_url.as_deref(),
-                instance_url.as_deref(),
-                &cfg,
-            );
-            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
-            match action {
-                GlowCommands::Login => ll_cmd::auth::cmd_login(&glow_url, &client_id, mode)?,
-                GlowCommands::Logout => ll_cmd::auth::cmd_logout(&glow_url, mode)?,
-                GlowCommands::Health => glow_cmd::cmd_health(&client, mode)?,
-                GlowCommands::Personas { action } => match action {
-                    PersonaCommands::List => glow_cmd::cmd_persona_list(&client, mode)?,
-                    PersonaCommands::Get { id } => {
-                        glow_cmd::cmd_persona_get(&client, &id, mode)?
-                    }
-                    PersonaCommands::Create { name, description } => {
-                        glow_cmd::cmd_persona_create(&client, &name, description.as_deref(), mode)?
-                    }
-                    PersonaCommands::Delete { id } => {
-                        glow_cmd::cmd_persona_delete(&client, &id, cli.yes, mode)?
-                    }
-                },
-                GlowCommands::Artifacts {
-                    artifact_type,
-                    action,
-                    body,
-                } => {
-                    glow_cmd::artifacts::cmd_artifact_action(
-                        &client,
-                        &artifact_type,
-                        &action,
-                        body.as_deref(),
-                        mode,
-                    )?
-                }
-                GlowCommands::Events { action } => match action {
-                    EventCommands::Stream {
-                        artifact_type,
-                        artifact_id,
-                        operation,
-                    } => glow_cmd::events::cmd_events_stream(
-                        &client,
-                        artifact_type.as_deref(),
-                        artifact_id.as_deref(),
-                        operation.as_deref(),
-                        mode,
-                    )?,
-                    EventCommands::Poll { body } => {
-                        glow_cmd::events::cmd_events_poll(&client, body.as_deref(), mode)?
-                    }
-                    EventCommands::WebhooksDispatch { body } => {
-                        glow_cmd::events::cmd_events_webhook_dispatch(
-                            &client,
-                            body.as_deref(),
-                            mode,
-                        )?
-                    }
-                },
-                GlowCommands::Upload { action } => match action {
-                    UploadCommands::Create {
-                        filename,
-                        content_type,
-                        size,
-                    } => glow_cmd::uploads::cmd_upload_create(
-                        &client,
-                        &filename,
-                        content_type.as_deref(),
-                        size,
-                        mode,
-                    )?,
-                    UploadCommands::Send { id, file } => {
-                        glow_cmd::uploads::cmd_upload_send(&client, &id, &file, mode)?
-                    }
-                    UploadCommands::Status { id } => {
-                        glow_cmd::uploads::cmd_upload_status(&client, &id, mode)?
-                    }
-                    UploadCommands::Download { id, output } => {
-                        glow_cmd::uploads::cmd_upload_download(
-                            &client,
-                            &id,
-                            output.as_deref(),
-                            mode,
-                        )?
-                    }
-                    UploadCommands::Multipart { file } => {
-                        glow_cmd::uploads::cmd_upload_multipart(&client, &file, mode)?
-                    }
-                    UploadCommands::Raw { file, content_type } => {
-                        glow_cmd::uploads::cmd_upload_raw(
-                            &client,
-                            &file,
-                            content_type.as_deref(),
-                            mode,
-                        )?
-                    }
-                    UploadCommands::CsvParse { file } => {
-                        glow_cmd::uploads::cmd_upload_csv_parse(&client, &file, mode)?
-                    }
-                    UploadCommands::Preview => {
-                        glow_cmd::uploads::cmd_upload_preview(&client, mode)?
-                    }
-                    UploadCommands::Template { output } => {
-                        glow_cmd::uploads::cmd_upload_template(
-                            &client,
-                            output.as_deref(),
-                            mode,
-                        )?
-                    }
-                    UploadCommands::Discover => {
-                        glow_cmd::uploads::cmd_upload_discover(&client, mode)?
-                    }
-                    UploadCommands::Finalize { body } => {
-                        glow_cmd::uploads::cmd_upload_finalize(&client, body.as_deref(), mode)?
-                    }
-                },
-            }
         }
     }
 

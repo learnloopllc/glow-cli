@@ -210,57 +210,6 @@ fn test_use_unknown_instance_fails() {
         .stderr(predicate::str::contains("Unknown instance"));
 }
 
-// ── Legacy glow subcommand (backward compat) ────────────────
-
-#[test]
-fn test_glow_subcommand_alias() {
-    Command::cargo_bin("glow")
-        .unwrap()
-        .args(["g", "--help"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Manage a Glow instance"));
-}
-
-#[test]
-fn test_personas_alias_via_glow() {
-    Command::cargo_bin("glow")
-        .unwrap()
-        .args(["g", "p", "--help"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Manage personas"));
-}
-
-#[test]
-fn test_delete_without_yes_aborts_in_non_tty() {
-    Command::cargo_bin("glow")
-        .unwrap()
-        .args(["glow", "personas", "delete", "some-id"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Aborted"));
-}
-
-#[test]
-fn test_glow_login_unreachable() {
-    Command::cargo_bin("glow")
-        .unwrap()
-        .args(["glow", "--instance-url", "http://127.0.0.1:1", "login"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("Failed to reach OIDC discovery"));
-}
-
-#[test]
-fn test_glow_logout() {
-    Command::cargo_bin("glow")
-        .unwrap()
-        .args(["glow", "--instance-url", "http://127.0.0.1:1", "logout"])
-        .assert()
-        .success();
-}
-
 // ── Admin commands ───────────────────────────────────────────
 
 #[test]
