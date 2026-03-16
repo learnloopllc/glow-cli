@@ -1,23 +1,27 @@
 # Glow CLI — Development Makefile
 #
 # Quick reference:
-#   make          → build debug
-#   make run      → build + run (pass ARGS="personas list")
-#   make test     → run all tests
-#   make check    → fmt + clippy + test (same as CI)
-#   make release  → optimized build
-#   make install  → install to ~/.cargo/bin
+#   make                    → build debug
+#   make run health         → cargo run -- health (with debug logs)
+#   make run personas list  → cargo run -- personas list
+#   make run admin status   → cargo run -- admin status
+#   make test               → run all tests
+#   make check              → fmt + clippy + test (same as CI)
+#   make release            → optimized build
+#   make install            → install to ~/.cargo/bin
 
 .PHONY: build run test test-unit test-integration fmt clippy check release install clean watch coverage help
+
+# Grab everything after the first word (the make target) as CLI args
+RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 
 # Default target
 build:
 	cargo build
 
-# Run with arguments: make run ARGS="glow personas list"
-ARGS ?= --help
+# Run: make run health | make run personas list | make run admin status
 run:
-	cargo run -- $(ARGS)
+	RUST_LOG=debug cargo run -- $(or $(RUN_ARGS),--help)
 
 # Run all tests
 test:
@@ -70,7 +74,7 @@ coverage-ci:
 help:
 	@echo "Available targets:"
 	@echo "  build            Build debug binary"
-	@echo "  run              Build + run (use ARGS=\"...\" to pass arguments)"
+	@echo "  run <args>       Build + run (e.g. make run health, make run personas list)"
 	@echo "  test             Run all tests"
 	@echo "  test-unit        Run unit tests only"
 	@echo "  test-integration Run integration tests only"
@@ -82,3 +86,7 @@ help:
 	@echo "  clean            Remove build artifacts"
 	@echo "  watch            Auto-rebuild on file changes (needs cargo-watch)"
 	@echo "  coverage         Run tests with coverage report (needs cargo-llvm-cov)"
+
+# Catch trailing args from "make run ..." so Make doesn't error on them
+%:
+	@:
