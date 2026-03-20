@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -90,6 +91,17 @@ jobs:
         with:
           generate_release_notes: true
           files: artifacts/*
+
+      - name: Build and push Docker image
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          tar xzf artifacts/glow-x86_64-unknown-linux-gnu.tar.gz -C /tmp
+          cp /tmp/glow .
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker build -t ghcr.io/learnloopllc/glow-cli:v${VERSION} -t ghcr.io/learnloopllc/glow-cli:latest .
+          docker push ghcr.io/learnloopllc/glow-cli:v${VERSION}
+          docker push ghcr.io/learnloopllc/glow-cli:latest
+          rm glow
 
       - name: Generate GitHub App token
         id: app-token
