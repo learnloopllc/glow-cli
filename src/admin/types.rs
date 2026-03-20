@@ -4,7 +4,7 @@
 // Aliases below bridge API names to CLI names for backwards compatibility.
 
 #[allow(unused_imports)]
-pub use super::types_gen::*;
+pub use super::api::latest::*;
 
 // ── Aliases (API name → CLI name) ───────────────────────────────
 //
@@ -28,7 +28,12 @@ pub type OrgLicenseRemoveResponse = RemovedResponse;
 pub type OrgDeploymentsResponse = DeployListResponse;
 pub type Deployment = DeploymentResponse;
 pub type DeployResponse = DeployCreateResponse;
-// UsageReportResponse is now generated directly from the API
+// UsageReportResponse — CLI expects { success: bool }
+use serde::{Deserialize, Serialize};
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageReportResponse {
+    pub success: bool,
+}
 pub type BillingPlan = PlanInfo;
 pub type BillingPlansResponse = PlansResponse;
 pub type BillingCheckoutResponse = CheckoutResponse;

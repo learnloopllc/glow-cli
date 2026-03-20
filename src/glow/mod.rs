@@ -4,8 +4,8 @@
 // Auth: X-License-Key (license key) + Bearer token (OAuth) — dual auth
 // Token is auto-loaded from the stored auth for the instance URL.
 
+pub mod api;
 pub mod types;
-mod types_gen;
 
 use anyhow::{Context, Result};
 use reqwest::blocking;

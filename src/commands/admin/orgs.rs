@@ -114,9 +114,10 @@ pub(crate) fn cmd_org_members(client: &AdminClient, org_id: &str, mode: OutputMo
     output::print_result(mode, &resp, |r| {
         println!("{} ({} members)\n", "Members".bold(), r.members.len());
         for m in &r.members {
-            let role = match m.role.as_str() {
+            let role_str = m.role.as_deref().unwrap_or("member");
+            let role = match role_str {
                 "admin" => "admin".yellow().to_string(),
-                _ => m.role.dimmed().to_string(),
+                _ => role_str.dimmed().to_string(),
             };
             println!("  {} {} <{}> [{}]", m.id.dimmed(), m.name.bold(), m.email, role);
         }

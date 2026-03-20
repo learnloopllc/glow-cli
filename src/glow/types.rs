@@ -4,7 +4,7 @@
 // Add aliases or custom types here.
 
 #[allow(unused_imports)]
-pub use super::types_gen::*;
+pub use super::api::latest::*;
 
 // ── CLI-specific types (not in OpenAPI) ──────────────────────────
 

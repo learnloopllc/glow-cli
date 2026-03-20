@@ -183,7 +183,7 @@ def main():
     print("// Do not edit manually — regenerated on each API release.")
     print(f"// Schemas: {len(schemas)}")
     print()
-    print("#![allow(dead_code, clippy::derive_partial_eq_without_eq)]")
+    print("#![allow(dead_code, non_camel_case_types, clippy::derive_partial_eq_without_eq)]")
     print()
     print("use serde::{Deserialize, Serialize};")
     print()

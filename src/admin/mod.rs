@@ -2,8 +2,8 @@
 //
 // Handles: auth, licensing, billing, organizations, usage, deploy
 
+pub mod api;
 pub mod types;
-mod types_gen;
 
 use anyhow::Result;
 use reqwest::blocking;
@@ -590,7 +590,7 @@ mod tests {
         let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.org_members("org-1").unwrap();
         assert_eq!(resp.members.len(), 1);
-        assert_eq!(resp.members[0].role, "admin");
+        assert_eq!(resp.members[0].role, Some("admin".into()));
         mock.assert();
     }
 
