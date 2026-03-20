@@ -79,6 +79,12 @@ jobs:
           path: artifacts
           merge-multiple: true
 
+      - name: Generate cli-spec.json
+        run: |
+          tar xzf artifacts/glow-x86_64-unknown-linux-gnu.tar.gz -C /tmp
+          chmod +x /tmp/glow
+          /tmp/glow --dump-cli-spec > artifacts/cli-spec.json
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
