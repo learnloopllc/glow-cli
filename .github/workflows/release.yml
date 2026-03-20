@@ -84,3 +84,23 @@ jobs:
         with:
           generate_release_notes: true
           files: artifacts/*
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.DEPLOY_APP_ID }}
+          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+          owner: learnloopllc
+
+      - name: Dispatch compat-update
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          MIN_API=$(grep 'min_glow_api' compat.yml | cut -d'"' -f2)
+          gh api repos/learnloopllc/api/dispatches \
+            -f event_type=compat-update \
+            -f 'client_payload[component]=glow-cli' \
+            -f "client_payload[version]=$VERSION" \
+            -f "client_payload[min_glow_api]=$MIN_API"

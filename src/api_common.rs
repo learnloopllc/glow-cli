@@ -1,6 +1,6 @@
 // api_common.rs — Shared HTTP helpers for both API clients
 //
-// Both LearnLoopClient and GlowClient use these.
+// Both AdminClient and GlowClient use these.
 
 use anyhow::{Context, Result};
 use reqwest::blocking;

@@ -1,6 +1,6 @@
 use anyhow::Result;
 use crate::auth;
-use crate::learnloop::LearnLoopClient;
+use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 
 pub(crate) fn cmd_login(server_url: &str, client_id: &str, mode: OutputMode) -> Result<()> {
@@ -109,7 +109,7 @@ pub(crate) fn cmd_sessions(mode: OutputMode) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn cmd_whoami(client: &LearnLoopClient, mode: OutputMode) -> Result<()> {
+pub(crate) fn cmd_whoami(client: &AdminClient, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
 
     let resp = client.whoami()?;

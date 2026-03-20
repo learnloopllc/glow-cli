@@ -1,9 +1,9 @@
 use anyhow::Result;
-use crate::learnloop::LearnLoopClient;
+use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 
 pub(crate) fn cmd_license_list(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     active_only: bool,
     mode: OutputMode,
 ) -> Result<()> {
@@ -34,7 +34,7 @@ pub(crate) fn cmd_license_list(
     Ok(())
 }
 
-pub(crate) fn cmd_license_validate(client: &LearnLoopClient, mode: OutputMode) -> Result<()> {
+pub(crate) fn cmd_license_validate(client: &AdminClient, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
 
     let resp = client.validate_license()?;
@@ -55,7 +55,7 @@ pub(crate) fn cmd_license_validate(client: &LearnLoopClient, mode: OutputMode) -
 }
 
 pub(crate) fn cmd_license_create(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     key: &str,
     expiry: &str,
     mode: OutputMode,
@@ -70,7 +70,7 @@ pub(crate) fn cmd_license_create(
 }
 
 pub(crate) fn cmd_license_update(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     id: &str,
     key: Option<&str>,
     expiry: Option<&str>,
@@ -87,7 +87,7 @@ pub(crate) fn cmd_license_update(
 }
 
 pub(crate) fn cmd_license_delete(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     id: &str,
     yes: bool,
     mode: OutputMode,

@@ -1,8 +1,8 @@
 use anyhow::Result;
-use crate::learnloop::LearnLoopClient;
+use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 
-pub(crate) fn cmd_billing_plans(client: &LearnLoopClient, mode: OutputMode) -> Result<()> {
+pub(crate) fn cmd_billing_plans(client: &AdminClient, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
 
     let resp = client.billing_plans()?;
@@ -26,7 +26,7 @@ pub(crate) fn cmd_billing_plans(client: &LearnLoopClient, mode: OutputMode) -> R
 }
 
 pub(crate) fn cmd_billing_status(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     org_id: &str,
     mode: OutputMode,
 ) -> Result<()> {
@@ -51,7 +51,7 @@ pub(crate) fn cmd_billing_status(
 }
 
 pub(crate) fn cmd_billing_checkout(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     org_id: &str,
     plan: &str,
     mode: OutputMode,
@@ -72,7 +72,7 @@ pub(crate) fn cmd_billing_checkout(
 }
 
 pub(crate) fn cmd_billing_portal(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     org_id: &str,
     mode: OutputMode,
 ) -> Result<()> {

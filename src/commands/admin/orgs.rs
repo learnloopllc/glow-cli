@@ -1,8 +1,8 @@
 use anyhow::Result;
-use crate::learnloop::LearnLoopClient;
+use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 
-pub(crate) fn cmd_org_list(client: &LearnLoopClient, mode: OutputMode) -> Result<()> {
+pub(crate) fn cmd_org_list(client: &AdminClient, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
 
     let resp = client.org_list()?;
@@ -28,7 +28,7 @@ pub(crate) fn cmd_org_list(client: &LearnLoopClient, mode: OutputMode) -> Result
 }
 
 pub(crate) fn cmd_org_create(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     name: &str,
     description: Option<&str>,
     mode: OutputMode,
@@ -47,7 +47,7 @@ pub(crate) fn cmd_org_create(
     Ok(())
 }
 
-pub(crate) fn cmd_org_get(client: &LearnLoopClient, id: &str, mode: OutputMode) -> Result<()> {
+pub(crate) fn cmd_org_get(client: &AdminClient, id: &str, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
 
     let resp = client.org_get(id)?;
@@ -72,7 +72,7 @@ pub(crate) fn cmd_org_get(client: &LearnLoopClient, id: &str, mode: OutputMode) 
 }
 
 pub(crate) fn cmd_org_update(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     id: &str,
     name: Option<&str>,
     description: Option<&str>,
@@ -88,7 +88,7 @@ pub(crate) fn cmd_org_update(
 }
 
 pub(crate) fn cmd_org_delete(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     id: &str,
     yes: bool,
     mode: OutputMode,
@@ -107,7 +107,7 @@ pub(crate) fn cmd_org_delete(
     Ok(())
 }
 
-pub(crate) fn cmd_org_members(client: &LearnLoopClient, org_id: &str, mode: OutputMode) -> Result<()> {
+pub(crate) fn cmd_org_members(client: &AdminClient, org_id: &str, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
 
     let resp = client.org_members(org_id)?;
@@ -125,7 +125,7 @@ pub(crate) fn cmd_org_members(client: &LearnLoopClient, org_id: &str, mode: Outp
 }
 
 pub(crate) fn cmd_org_member_add(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     org_id: &str,
     email: &str,
     mode: OutputMode,
@@ -140,7 +140,7 @@ pub(crate) fn cmd_org_member_add(
 }
 
 pub(crate) fn cmd_org_member_remove(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     org_id: &str,
     user_id: &str,
     yes: bool,
@@ -164,7 +164,7 @@ pub(crate) fn cmd_org_member_remove(
     Ok(())
 }
 
-pub(crate) fn cmd_org_license(client: &LearnLoopClient, org_id: &str, mode: OutputMode) -> Result<()> {
+pub(crate) fn cmd_org_license(client: &AdminClient, org_id: &str, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
 
     let resp = client.org_license(org_id)?;
@@ -185,7 +185,7 @@ pub(crate) fn cmd_org_license(client: &LearnLoopClient, org_id: &str, mode: Outp
 }
 
 pub(crate) fn cmd_org_license_set(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     org_id: &str,
     license_id: &str,
     mode: OutputMode,
@@ -204,7 +204,7 @@ pub(crate) fn cmd_org_license_set(
 }
 
 pub(crate) fn cmd_org_license_remove(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     org_id: &str,
     yes: bool,
     mode: OutputMode,
@@ -227,7 +227,7 @@ pub(crate) fn cmd_org_license_remove(
 }
 
 pub(crate) fn cmd_org_deployments(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     org_id: &str,
     mode: OutputMode,
 ) -> Result<()> {

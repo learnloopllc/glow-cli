@@ -1,8 +1,8 @@
 use anyhow::Result;
-use crate::learnloop::LearnLoopClient;
+use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 
-pub(crate) fn cmd_usage(client: &LearnLoopClient, license_id: &str, mode: OutputMode) -> Result<()> {
+pub(crate) fn cmd_usage(client: &AdminClient, license_id: &str, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
 
     let resp = client.usage_summary(license_id)?;

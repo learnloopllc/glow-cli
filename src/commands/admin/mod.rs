@@ -8,7 +8,7 @@ pub mod status;
 pub mod usage;
 
 use colored::Colorize;
-use crate::learnloop::types::Deployment;
+use crate::admin::types::Deployment;
 
 pub(crate) fn print_deployment(d: &Deployment) {
     let name = d.name.as_deref().unwrap_or("unnamed");

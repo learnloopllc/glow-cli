@@ -5,6 +5,7 @@
 // Token is auto-loaded from the stored auth for the instance URL.
 
 pub mod types;
+mod types_gen;
 
 use anyhow::{Context, Result};
 use reqwest::blocking;

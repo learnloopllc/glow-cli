@@ -1,9 +1,9 @@
 use anyhow::Result;
-use crate::learnloop::LearnLoopClient;
+use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 
 pub(crate) fn cmd_deploy_create(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     license_id: &str,
     name: &str,
     subdomain: &str,
@@ -31,7 +31,7 @@ pub(crate) fn cmd_deploy_create(
 }
 
 pub(crate) fn cmd_deploy_stop(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     deployment_id: &str,
     yes: bool,
     mode: OutputMode,
@@ -55,7 +55,7 @@ pub(crate) fn cmd_deploy_stop(
 }
 
 pub(crate) fn cmd_deploy_destroy(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     deployment_id: &str,
     yes: bool,
     mode: OutputMode,
@@ -82,7 +82,7 @@ pub(crate) fn cmd_deploy_destroy(
 }
 
 pub(crate) fn cmd_deploy_list(
-    client: &LearnLoopClient,
+    client: &AdminClient,
     active_only: bool,
     mode: OutputMode,
 ) -> Result<()> {

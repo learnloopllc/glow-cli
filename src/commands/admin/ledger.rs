@@ -1,6 +1,6 @@
 use anyhow::Result;
 use crate::ledger;
-use crate::learnloop::LearnLoopClient;
+use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 
 pub(crate) fn cmd_ledger_verify(path: &str, license_key: &str, mode: OutputMode) -> Result<()> {
@@ -83,7 +83,7 @@ pub(crate) fn cmd_ledger_status(path: &str, license_key: &str, mode: OutputMode)
 pub(crate) fn cmd_ledger_sync(
     path: &str,
     license_key: &str,
-    ll_client: &LearnLoopClient,
+    ll_client: &AdminClient,
     mode: OutputMode,
 ) -> Result<()> {
     use colored::Colorize;

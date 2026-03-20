@@ -11,7 +11,7 @@ mod auth;
 mod commands;
 mod config;
 mod glow;
-mod learnloop;
+mod admin;
 mod ledger;
 mod output;
 mod resource;
@@ -564,18 +564,18 @@ fn main() -> Result<()> {
         "api-client",
     );
 
-    use commands::learnloop as ll_cmd;
+    use commands::admin as admin_cmd;
     use commands::glow as glow_cmd;
 
     match cli.command {
         // ── Top-level Glow instance commands ─────────────────
         Commands::Login => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            ll_cmd::auth::cmd_login(&glow_url, &client_id, mode)?
+            admin_cmd::auth::cmd_login(&glow_url, &client_id, mode)?
         }
         Commands::Logout => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            ll_cmd::auth::cmd_logout(&glow_url, mode)?
+            admin_cmd::auth::cmd_logout(&glow_url, mode)?
         }
         Commands::Health => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
@@ -661,14 +661,14 @@ fn main() -> Result<()> {
                 .ok_or_else(|| anyhow::anyhow!("License key required for ledger operations. Use --license-key or set GLOW_LICENSE_KEY."))?;
             match action {
                 LedgerCommands::Verify { path } => {
-                    ll_cmd::ledger::cmd_ledger_verify(&path, key, mode)?
+                    admin_cmd::ledger::cmd_ledger_verify(&path, key, mode)?
                 }
                 LedgerCommands::Status { path } => {
-                    ll_cmd::ledger::cmd_ledger_status(&path, key, mode)?
+                    admin_cmd::ledger::cmd_ledger_status(&path, key, mode)?
                 }
                 LedgerCommands::Sync { path } => {
-                    let ll_client = learnloop::LearnLoopClient::new(&api_url, Some(key));
-                    ll_cmd::ledger::cmd_ledger_sync(&path, key, &ll_client, mode)?
+                    let ll_client = admin::AdminClient::new(&api_url, Some(key));
+                    admin_cmd::ledger::cmd_ledger_sync(&path, key, &ll_client, mode)?
                 }
             }
         }
@@ -761,35 +761,35 @@ fn dispatch_admin(
     yes: bool,
     mode: OutputMode,
 ) -> Result<()> {
-    use commands::learnloop as ll_cmd;
+    use commands::admin as admin_cmd;
 
     match action {
-        AdminCommands::Login => ll_cmd::auth::cmd_login(api_url, client_id, mode)?,
-        AdminCommands::Logout => ll_cmd::auth::cmd_logout(api_url, mode)?,
-        AdminCommands::Sessions => ll_cmd::auth::cmd_sessions(mode)?,
+        AdminCommands::Login => admin_cmd::auth::cmd_login(api_url, client_id, mode)?,
+        AdminCommands::Logout => admin_cmd::auth::cmd_logout(api_url, mode)?,
+        AdminCommands::Sessions => admin_cmd::auth::cmd_sessions(mode)?,
         AdminCommands::Whoami => {
-            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
-            ll_cmd::auth::cmd_whoami(&ll, mode)?
+            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
+            admin_cmd::auth::cmd_whoami(&ll, mode)?
         }
-        AdminCommands::Network => ll_cmd::status::cmd_network(api_url, mode)?,
-        AdminCommands::Status => ll_cmd::status::cmd_status(api_url, license_key, mode)?,
+        AdminCommands::Network => admin_cmd::status::cmd_network(api_url, mode)?,
+        AdminCommands::Status => admin_cmd::status::cmd_status(api_url, license_key, mode)?,
 
         AdminCommands::Licenses { action } => {
-            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
             match action {
                 LicenseCommands::List { active } => {
-                    ll_cmd::licenses::cmd_license_list(&ll, active, mode)?
+                    admin_cmd::licenses::cmd_license_list(&ll, active, mode)?
                 }
-                LicenseCommands::Validate => ll_cmd::licenses::cmd_license_validate(&ll, mode)?,
+                LicenseCommands::Validate => admin_cmd::licenses::cmd_license_validate(&ll, mode)?,
                 LicenseCommands::Create { key, expiry } => {
-                    ll_cmd::licenses::cmd_license_create(&ll, &key, &expiry, mode)?
+                    admin_cmd::licenses::cmd_license_create(&ll, &key, &expiry, mode)?
                 }
                 LicenseCommands::Update {
                     id,
                     key,
                     expiry,
                     active,
-                } => ll_cmd::licenses::cmd_license_update(
+                } => admin_cmd::licenses::cmd_license_update(
                     &ll,
                     &id,
                     key.as_deref(),
@@ -798,24 +798,24 @@ fn dispatch_admin(
                     mode,
                 )?,
                 LicenseCommands::Delete { id } => {
-                    ll_cmd::licenses::cmd_license_delete(&ll, &id, yes, mode)?
+                    admin_cmd::licenses::cmd_license_delete(&ll, &id, yes, mode)?
                 }
             }
         }
 
         AdminCommands::Orgs { action } => {
-            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
             match action {
-                OrgCommands::List => ll_cmd::orgs::cmd_org_list(&ll, mode)?,
+                OrgCommands::List => admin_cmd::orgs::cmd_org_list(&ll, mode)?,
                 OrgCommands::Create { name, description } => {
-                    ll_cmd::orgs::cmd_org_create(&ll, &name, description.as_deref(), mode)?
+                    admin_cmd::orgs::cmd_org_create(&ll, &name, description.as_deref(), mode)?
                 }
-                OrgCommands::Get { id } => ll_cmd::orgs::cmd_org_get(&ll, &id, mode)?,
+                OrgCommands::Get { id } => admin_cmd::orgs::cmd_org_get(&ll, &id, mode)?,
                 OrgCommands::Update {
                     id,
                     name,
                     description,
-                } => ll_cmd::orgs::cmd_org_update(
+                } => admin_cmd::orgs::cmd_org_update(
                     &ll,
                     &id,
                     name.as_deref(),
@@ -823,39 +823,39 @@ fn dispatch_admin(
                     mode,
                 )?,
                 OrgCommands::Delete { id } => {
-                    ll_cmd::orgs::cmd_org_delete(&ll, &id, yes, mode)?
+                    admin_cmd::orgs::cmd_org_delete(&ll, &id, yes, mode)?
                 }
                 OrgCommands::Members { id, action } => match action {
-                    OrgMemberCommands::List => ll_cmd::orgs::cmd_org_members(&ll, &id, mode)?,
+                    OrgMemberCommands::List => admin_cmd::orgs::cmd_org_members(&ll, &id, mode)?,
                     OrgMemberCommands::Add { email } => {
-                        ll_cmd::orgs::cmd_org_member_add(&ll, &id, &email, mode)?
+                        admin_cmd::orgs::cmd_org_member_add(&ll, &id, &email, mode)?
                     }
                     OrgMemberCommands::Remove { user_id } => {
-                        ll_cmd::orgs::cmd_org_member_remove(&ll, &id, &user_id, yes, mode)?
+                        admin_cmd::orgs::cmd_org_member_remove(&ll, &id, &user_id, yes, mode)?
                     }
                 },
                 OrgCommands::License { id, action } => match action {
-                    OrgLicenseCommands::Get => ll_cmd::orgs::cmd_org_license(&ll, &id, mode)?,
+                    OrgLicenseCommands::Get => admin_cmd::orgs::cmd_org_license(&ll, &id, mode)?,
                     OrgLicenseCommands::Set { license_id } => {
-                        ll_cmd::orgs::cmd_org_license_set(&ll, &id, &license_id, mode)?
+                        admin_cmd::orgs::cmd_org_license_set(&ll, &id, &license_id, mode)?
                     }
                     OrgLicenseCommands::Remove => {
-                        ll_cmd::orgs::cmd_org_license_remove(&ll, &id, yes, mode)?
+                        admin_cmd::orgs::cmd_org_license_remove(&ll, &id, yes, mode)?
                     }
                 },
                 OrgCommands::Deployments { id } => {
-                    ll_cmd::orgs::cmd_org_deployments(&ll, &id, mode)?
+                    admin_cmd::orgs::cmd_org_deployments(&ll, &id, mode)?
                 }
             }
         }
 
         AdminCommands::Usage { license_id } => {
-            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
-            ll_cmd::usage::cmd_usage(&ll, &license_id, mode)?
+            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
+            admin_cmd::usage::cmd_usage(&ll, &license_id, mode)?
         }
 
         AdminCommands::Deploy { action } => {
-            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
             match action {
                 DeployCommands::Create {
                     license_id,
@@ -863,7 +863,7 @@ fn dispatch_admin(
                     subdomain,
                     base_domain,
                     public,
-                } => ll_cmd::deploy::cmd_deploy_create(
+                } => admin_cmd::deploy::cmd_deploy_create(
                     &ll,
                     &license_id,
                     &name,
@@ -873,29 +873,29 @@ fn dispatch_admin(
                     mode,
                 )?,
                 DeployCommands::Stop { id } => {
-                    ll_cmd::deploy::cmd_deploy_stop(&ll, &id, yes, mode)?
+                    admin_cmd::deploy::cmd_deploy_stop(&ll, &id, yes, mode)?
                 }
                 DeployCommands::Destroy { id } => {
-                    ll_cmd::deploy::cmd_deploy_destroy(&ll, &id, yes, mode)?
+                    admin_cmd::deploy::cmd_deploy_destroy(&ll, &id, yes, mode)?
                 }
                 DeployCommands::List { all } => {
-                    ll_cmd::deploy::cmd_deploy_list(&ll, !all, mode)?
+                    admin_cmd::deploy::cmd_deploy_list(&ll, !all, mode)?
                 }
             }
         }
 
         AdminCommands::Billing { action } => {
-            let ll = learnloop::LearnLoopClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
             match action {
-                BillingCommands::Plans => ll_cmd::billing::cmd_billing_plans(&ll, mode)?,
+                BillingCommands::Plans => admin_cmd::billing::cmd_billing_plans(&ll, mode)?,
                 BillingCommands::Status { org_id } => {
-                    ll_cmd::billing::cmd_billing_status(&ll, &org_id, mode)?
+                    admin_cmd::billing::cmd_billing_status(&ll, &org_id, mode)?
                 }
                 BillingCommands::Checkout { org_id, plan } => {
-                    ll_cmd::billing::cmd_billing_checkout(&ll, &org_id, &plan, mode)?
+                    admin_cmd::billing::cmd_billing_checkout(&ll, &org_id, &plan, mode)?
                 }
                 BillingCommands::Portal { org_id } => {
-                    ll_cmd::billing::cmd_billing_portal(&ll, &org_id, mode)?
+                    admin_cmd::billing::cmd_billing_portal(&ll, &org_id, mode)?
                 }
             }
         }

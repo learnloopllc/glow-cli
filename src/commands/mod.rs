@@ -1,2 +1,2 @@
-pub mod learnloop;
+pub mod admin;
 pub mod glow;

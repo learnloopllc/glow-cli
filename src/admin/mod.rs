@@ -1,8 +1,9 @@
-// learnloop/mod.rs — HTTP client for the LearnLoop central API
+// admin/mod.rs — HTTP client for the LearnLoop central API
 //
 // Handles: auth, licensing, billing, organizations, usage, deploy
 
 pub mod types;
+mod types_gen;
 
 use anyhow::Result;
 use reqwest::blocking;
@@ -10,20 +11,20 @@ use serde_json::json;
 
 use crate::api_common::{api_request, Auth};
 
-pub struct LearnLoopClient {
+pub struct AdminClient {
     base_url: String,
     http: blocking::Client,
     license_key: Option<String>,
     token: Option<String>,
 }
 
-impl LearnLoopClient {
+impl AdminClient {
     pub fn new(base_url: &str, license_key: Option<&str>) -> Self {
         let token = crate::auth::get_token(base_url)
             .ok()
             .map(|t| t.access_token);
 
-        LearnLoopClient {
+        AdminClient {
             base_url: base_url.trim_end_matches('/').to_string(),
             http: blocking::Client::new(),
             license_key: license_key.map(|s| s.to_string()),
@@ -33,7 +34,7 @@ impl LearnLoopClient {
 
     #[cfg(test)]
     fn new_with_token(base_url: &str, token: &str) -> Self {
-        LearnLoopClient {
+        AdminClient {
             base_url: base_url.trim_end_matches('/').to_string(),
             http: blocking::Client::new(),
             license_key: None,
@@ -459,7 +460,7 @@ mod tests {
             .with_body(r#"{"user_id": "u-1", "email": "a@b.com", "name": "Alice", "is_superadmin": false, "org_id": "org-1", "org_role": "admin", "idp": null, "github_username": null}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "test-token");
+        let client = AdminClient::new_with_token(&server.url(), "test-token");
         let resp = client.whoami().unwrap();
         assert_eq!(resp.email, "a@b.com");
         assert_eq!(resp.org_role, Some("admin".into()));
@@ -474,7 +475,7 @@ mod tests {
             .with_status(401)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "bad-token");
+        let client = AdminClient::new_with_token(&server.url(), "bad-token");
         let err = client.whoami().unwrap_err();
         assert!(err.to_string().contains("Authentication failed"));
     }
@@ -489,7 +490,7 @@ mod tests {
             .with_body(r#"{"licenses": [{"id": "lic-1", "key": "abc-123", "expiry": "2026-12-31", "active": true}]}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.license_list(false).unwrap();
         assert_eq!(resp.licenses.len(), 1);
         assert_eq!(resp.licenses[0].id, "lic-1");
@@ -506,7 +507,7 @@ mod tests {
             .with_body(r#"{"id": "lic-new", "key": "new-key", "expiry": "2027-01-01", "active": true}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.license_create("new-key", "2027-01-01").unwrap();
         assert_eq!(resp.id, "lic-new");
         mock.assert();
@@ -522,7 +523,7 @@ mod tests {
             .with_body(r#"{"deleted": true}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.license_delete("lic-1").unwrap();
         assert!(resp.deleted);
         mock.assert();
@@ -538,7 +539,7 @@ mod tests {
             .with_body(r#"{"organizations": [{"id": "org-1", "name": "Acme", "description": null, "active": true}]}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.org_list().unwrap();
         assert_eq!(resp.organizations[0].name, "Acme");
         mock.assert();
@@ -554,7 +555,7 @@ mod tests {
             .with_body(r#"{"id": "org-new", "name": "NewOrg", "description": "test", "active": true}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.org_create("NewOrg", Some("test")).unwrap();
         assert_eq!(resp.id, "org-new");
         mock.assert();
@@ -570,7 +571,7 @@ mod tests {
             .with_body(r#"{"deleted": true}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.org_delete("org-1").unwrap();
         assert!(resp.deleted);
         mock.assert();
@@ -586,7 +587,7 @@ mod tests {
             .with_body(r#"{"members": [{"id": "u-1", "name": "Alice", "email": "a@b.com", "is_superadmin": false, "role": "admin"}]}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.org_members("org-1").unwrap();
         assert_eq!(resp.members.len(), 1);
         assert_eq!(resp.members[0].role, "admin");
@@ -603,7 +604,7 @@ mod tests {
             .with_body(r#"{"deployment": {"id": "d-1", "name": "my-glow", "subdomain": "my", "base_domain": "learn-loop.org", "domain": "my.learn-loop.org", "status": "pending", "health": "unknown", "hosting_type": "hosted", "active": true}, "repo": {"html_url": "https://github.com/learnloopllc/my-glow"}, "invite": null}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.deploy("lic-1", "my-glow", "my", None, true).unwrap();
         assert_eq!(resp.deployment.name, Some("my-glow".into()));
         assert_eq!(resp.deployment.status, Some("pending".into()));
@@ -620,7 +621,7 @@ mod tests {
             .with_body(r#"{"id": "d-1", "name": "my-glow", "subdomain": "my", "domain": "my.learn-loop.org", "status": "stopped", "health": "unknown", "active": false}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.deploy_stop("d-1").unwrap();
         assert_eq!(resp.status, Some("stopped".into()));
         mock.assert();
@@ -636,7 +637,7 @@ mod tests {
             .with_body(r#"{"id": "d-1", "name": "my-glow", "subdomain": "my", "domain": "my.learn-loop.org", "status": "destroyed", "health": "unknown", "active": false}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.deploy_destroy("d-1").unwrap();
         assert_eq!(resp.status, Some("destroyed".into()));
         assert_eq!(resp.active, Some(false));
@@ -652,7 +653,7 @@ mod tests {
             .with_body(r#"{"detail":"Deployment must be stopped before destroying"}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let err = client.deploy_destroy("d-1").unwrap_err();
         assert!(err.to_string().contains("400"));
     }
@@ -667,7 +668,7 @@ mod tests {
             .with_body(r#"{"deployments": [{"id": "d-1", "name": "my-glow", "subdomain": "my", "base_domain": "learn-loop.org", "domain": "my.learn-loop.org", "status": "running", "health": "healthy", "hosting_type": "hosted", "active": true}]}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.deploy_list(true).unwrap();
         assert_eq!(resp.deployments.len(), 1);
         assert_eq!(resp.deployments[0].name, Some("my-glow".into()));
@@ -684,7 +685,7 @@ mod tests {
             .with_body(r#"{"deployments": [{"id": "d-1", "name": "a", "status": "running", "active": true}, {"id": "d-2", "name": "b", "status": "destroyed", "active": false}]}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.deploy_list(false).unwrap();
         assert_eq!(resp.deployments.len(), 2);
         mock.assert();
@@ -700,7 +701,7 @@ mod tests {
             .with_body(r#"{"added": true, "email": "new@b.com"}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.org_member_add("org-1", "new@b.com").unwrap();
         assert!(resp.added);
         mock.assert();
@@ -716,7 +717,7 @@ mod tests {
             .with_body(r#"{"total_simulations": 25, "free_tier": 10, "free_remaining": 0, "overage_simulations": 15, "estimated_cost": "$1.50"}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.usage_summary("lic-1").unwrap();
         assert_eq!(resp.total_simulations, 25);
         assert_eq!(resp.estimated_cost, Some("$1.50".into()));
@@ -733,7 +734,7 @@ mod tests {
             .with_body(r#"{"plans": [{"id": "pro", "name": "LearnLoop Pro", "pricing": "$49/mo", "included": 10, "overage_unit_price": "$0.10"}]}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.billing_plans().unwrap();
         assert_eq!(resp.plans[0].id, "pro");
         mock.assert();
@@ -749,7 +750,7 @@ mod tests {
             .with_body(r#"{"subscribed": true, "status": "active", "stripe_subscription_id": "sub_123"}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.billing_status("org-1").unwrap();
         assert!(resp.subscribed);
         mock.assert();
@@ -765,7 +766,7 @@ mod tests {
             .with_body(r#"{"url": "https://checkout.stripe.com/xxx", "session_id": "cs_123"}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.billing_checkout("org-1", "pro").unwrap();
         assert!(resp.url.contains("stripe"));
         mock.assert();
@@ -781,7 +782,7 @@ mod tests {
             .with_body(r#"{"url": "https://billing.stripe.com/yyy"}"#)
             .create();
 
-        let client = LearnLoopClient::new_with_token(&server.url(), "tok");
+        let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.billing_portal("org-1").unwrap();
         assert!(resp.url.contains("stripe"));
         mock.assert();
