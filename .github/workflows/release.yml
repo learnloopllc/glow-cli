@@ -104,3 +104,11 @@ jobs:
             -f 'client_payload[component]=glow-cli' \
             -f "client_payload[version]=$VERSION" \
             -f "client_payload[min_glow_api]=$MIN_API"
+
+      - name: Dispatch to docs
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh api repos/learnloopllc/docs/dispatches \
+            -f event_type=glow-cli-release \
+            -f "client_payload[version]=${GITHUB_REF#refs/tags/}"
