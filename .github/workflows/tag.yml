@@ -2,7 +2,7 @@ name: Tag
 
 on:
   push:
-    branches: [main, beta]
+    branches: [main]
     paths: ['Cargo.toml']
   workflow_dispatch:
 
