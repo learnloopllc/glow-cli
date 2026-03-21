@@ -98,9 +98,14 @@ jobs:
           tar xzf artifacts/glow-x86_64-unknown-linux-gnu.tar.gz -C /tmp
           cp /tmp/glow .
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker build -t ghcr.io/learnloopllc/glow-cli:v${VERSION} -t ghcr.io/learnloopllc/glow-cli:latest .
+          docker build -t ghcr.io/learnloopllc/glow-cli:v${VERSION} .
           docker push ghcr.io/learnloopllc/glow-cli:v${VERSION}
-          docker push ghcr.io/learnloopllc/glow-cli:latest
+          # Only tag as :latest from main branch releases (v2+)
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          if [ "$MAJOR" -ge 2 ]; then
+            docker tag ghcr.io/learnloopllc/glow-cli:v${VERSION} ghcr.io/learnloopllc/glow-cli:latest
+            docker push ghcr.io/learnloopllc/glow-cli:latest
+          fi
           rm glow
 
       - name: Generate GitHub App token
