@@ -82,7 +82,7 @@ impl GlowClient {
 
     // ── Generic resource CRUD (v5 routes) ────────────────────
     //
-    // The new URL pattern: POST /v5/{resource}/{action}
+    // The new URL pattern: POST /{resource}/{action}
 
     pub fn resource_action(
         &self,
@@ -90,7 +90,7 @@ impl GlowClient {
         action: &str,
         body: Option<Value>,
     ) -> Result<Value> {
-        let url = self.url(&format!("/v5/{}/{}", resource, action));
+        let url = self.url(&format!("/{}/{}", resource, action));
         api_request(
             &self.http,
             reqwest::Method::POST,
@@ -107,7 +107,7 @@ impl GlowClient {
         api_request(
             &self.http,
             reqwest::Method::POST,
-            &self.url("/v5/context"),
+            &self.url("/context"),
             Some(json!({})),
             self.auth(),
         )
@@ -118,7 +118,7 @@ impl GlowClient {
         api_request(
             &self.http,
             reqwest::Method::POST,
-            &self.url("/v5/emulate"),
+            &self.url("/emulate"),
             Some(json!({
                 "target_profile_id": target_profile_id,
                 "ttl": ttl,
@@ -132,7 +132,7 @@ impl GlowClient {
         api_request(
             &self.http,
             reqwest::Method::POST,
-            &self.url("/v5/unemulate"),
+            &self.url("/unemulate"),
             Some(json!({})),
             self.auth(),
         )
@@ -147,7 +147,7 @@ impl GlowClient {
         api_request(
             &self.http,
             reqwest::Method::POST,
-            &self.url("/v5/generate"),
+            &self.url("/generate"),
             Some(payload),
             self.auth(),
         )
@@ -156,15 +156,15 @@ impl GlowClient {
     // ── Per-resource media operations ──────────────────────────
     //
     // URL patterns:
-    //   POST /v5/{resource}/{media}/upload          — multipart upload
-    //   GET  /v5/{resource}/{media}/discover         — discover types
-    //   GET  /v5/{resource}/{media}/discover/{id}    — discover specific
-    //   POST /v5/{resource}/{media}/create           — TUS initiation
-    //   GET  /v5/{resource}/{media}/{id}/status      — TUS status
-    //   PATCH /v5/{resource}/{media}/{id}/chunk      — TUS chunk
-    //   POST /v5/{resource}/{media}/{id}/finalize    — TUS finalize
-    //   GET  /v5/{resource}/{media}/{id}/download    — download
-    //   GET  /v5/{resource}/{media}/{id}/preview     — preview
+    //   POST /{resource}/{media}/upload          — multipart upload
+    //   GET  /{resource}/{media}/discover         — discover types
+    //   GET  /{resource}/{media}/discover/{id}    — discover specific
+    //   POST /{resource}/{media}/create           — TUS initiation
+    //   GET  /{resource}/{media}/{id}/status      — TUS status
+    //   PATCH /{resource}/{media}/{id}/chunk      — TUS chunk
+    //   POST /{resource}/{media}/{id}/finalize    — TUS finalize
+    //   GET  /{resource}/{media}/{id}/download    — download
+    //   GET  /{resource}/{media}/{id}/preview     — preview
 
     /// Upload a file via multipart form
     pub fn media_upload(
@@ -185,7 +185,7 @@ impl GlowClient {
         let part = blocking::multipart::Part::bytes(data).file_name(filename);
         let form = blocking::multipart::Form::new().part("file", part);
 
-        let url = self.url(&format!("/v5/{}/{}/upload", resource, media_type));
+        let url = self.url(&format!("/{}/{}/upload", resource, media_type));
         let resp = self
             .authed_request(reqwest::Method::POST, &url)
             .multipart(form)
@@ -209,8 +209,8 @@ impl GlowClient {
         upload_id: Option<&str>,
     ) -> Result<Value> {
         let url = match upload_id {
-            Some(id) => self.url(&format!("/v5/{}/{}/discover/{}", resource, media_type, id)),
-            None => self.url(&format!("/v5/{}/{}/discover", resource, media_type)),
+            Some(id) => self.url(&format!("/{}/{}/discover/{}", resource, media_type, id)),
+            None => self.url(&format!("/{}/{}/discover", resource, media_type)),
         };
         api_request(&self.http, reqwest::Method::GET, &url, None, self.auth())
     }
@@ -227,7 +227,7 @@ impl GlowClient {
         if let Some(s) = size {
             body["size"] = json!(s);
         }
-        let url = self.url(&format!("/v5/{}/{}/create", resource, media_type));
+        let url = self.url(&format!("/{}/{}/create", resource, media_type));
         api_request(
             &self.http,
             reqwest::Method::POST,
@@ -247,7 +247,7 @@ impl GlowClient {
         offset: u64,
     ) -> Result<Value> {
         let url = self.url(&format!(
-            "/v5/{}/{}/{}/chunk",
+            "/{}/{}/{}/chunk",
             resource, media_type, upload_id
         ));
         let resp = self
@@ -282,7 +282,7 @@ impl GlowClient {
         upload_id: &str,
     ) -> Result<Value> {
         let url = self.url(&format!(
-            "/v5/{}/{}/{}/status",
+            "/{}/{}/{}/status",
             resource, media_type, upload_id
         ));
         api_request(&self.http, reqwest::Method::GET, &url, None, self.auth())
@@ -297,7 +297,7 @@ impl GlowClient {
         body: Option<Value>,
     ) -> Result<Value> {
         let url = self.url(&format!(
-            "/v5/{}/{}/{}/finalize",
+            "/{}/{}/{}/finalize",
             resource, media_type, upload_id
         ));
         api_request(
@@ -317,7 +317,7 @@ impl GlowClient {
         upload_id: &str,
     ) -> Result<Vec<u8>> {
         let url = self.url(&format!(
-            "/v5/{}/{}/{}/download",
+            "/{}/{}/{}/download",
             resource, media_type, upload_id
         ));
         let resp = api_request_raw(&self.http, reqwest::Method::GET, &url, None, self.auth())?;
@@ -333,7 +333,7 @@ impl GlowClient {
         upload_id: &str,
     ) -> Result<Value> {
         let url = self.url(&format!(
-            "/v5/{}/{}/{}/preview",
+            "/{}/{}/{}/preview",
             resource, media_type, upload_id
         ));
         api_request(&self.http, reqwest::Method::GET, &url, None, self.auth())
@@ -359,7 +359,7 @@ impl GlowClient {
         if let Some(c) = cursor {
             params.push(format!("cursor={}", c));
         }
-        let url = format!("{}?{}", self.url("/v5/stream"), params.join("&"));
+        let url = format!("{}?{}", self.url("/stream"), params.join("&"));
 
         let resp = self
             .authed_request(reqwest::Method::GET, &url)
@@ -427,7 +427,7 @@ mod tests {
     fn test_resource_action_search() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/personas/search")
+            .mock("POST", "/personas/search")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"entries": [], "total_count": 0}"#)
@@ -443,7 +443,7 @@ mod tests {
     fn test_resource_action_with_body() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/scenarios/get")
+            .mock("POST", "/scenarios/get")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"scenario_id": "s-1", "name": "Test"}"#)
@@ -465,7 +465,7 @@ mod tests {
     fn test_resource_action_attempt_start() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/attempt/start")
+            .mock("POST", "/attempt/start")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"attempt_id": "a-1"}"#)
@@ -485,7 +485,7 @@ mod tests {
     fn test_context() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/context")
+            .mock("POST", "/context")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"profile_id": "p-1", "name": "Alice", "role": "admin"}"#)
@@ -502,7 +502,7 @@ mod tests {
     fn test_emulate() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/emulate")
+            .mock("POST", "/emulate")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"emulating": true, "target_profile_id": "p-2", "ttl": 300}"#)
@@ -519,7 +519,7 @@ mod tests {
     fn test_unemulate() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/unemulate")
+            .mock("POST", "/unemulate")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"emulating": false}"#)
@@ -535,7 +535,7 @@ mod tests {
     fn test_generate() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/generate")
+            .mock("POST", "/generate")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"job_id": "j-1", "status": "queued"}"#)
@@ -551,7 +551,7 @@ mod tests {
     fn test_generate_with_body() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/generate")
+            .mock("POST", "/generate")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"job_id": "j-2", "status": "queued"}"#)
@@ -569,7 +569,7 @@ mod tests {
     fn test_stream_url_construction() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("GET", "/v5/stream")
+            .mock("GET", "/stream")
             .match_query(mockito::Matcher::AllOf(vec![
                 mockito::Matcher::UrlEncoded("artifact".into(), "personas".into()),
                 mockito::Matcher::UrlEncoded("operation".into(), "create".into()),
@@ -591,7 +591,7 @@ mod tests {
     fn test_media_upload() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/documents/file/upload")
+            .mock("POST", "/documents/file/upload")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"upload_id": "up-1", "filename": "test.txt"}"#)
@@ -614,10 +614,10 @@ mod tests {
     fn test_media_create_tus() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/documents/file/create")
+            .mock("POST", "/documents/file/create")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(r#"{"upload_id": "up-2", "upload_url": "/v5/documents/file/up-2"}"#)
+            .with_body(r#"{"upload_id": "up-2", "upload_url": "/documents/file/up-2"}"#)
             .create();
 
         let client = GlowClient::new(&server.url(), None);
@@ -632,7 +632,7 @@ mod tests {
     fn test_media_discover() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("GET", "/v5/scenarios/video/discover")
+            .mock("GET", "/scenarios/video/discover")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"types": ["mp4", "webm"]}"#)
@@ -648,7 +648,7 @@ mod tests {
     fn test_media_status() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("GET", "/v5/documents/file/up-1/status")
+            .mock("GET", "/documents/file/up-1/status")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"offset": 512, "length": 1024}"#)
@@ -664,7 +664,7 @@ mod tests {
     fn test_media_finalize() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/documents/file/up-1/finalize")
+            .mock("POST", "/documents/file/up-1/finalize")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"finalized": true}"#)
@@ -682,7 +682,7 @@ mod tests {
     fn test_media_preview() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("GET", "/v5/documents/file/up-1/preview")
+            .mock("GET", "/documents/file/up-1/preview")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"columns": ["name"], "rows": 3}"#)
@@ -700,7 +700,7 @@ mod tests {
     fn test_401_returns_auth_error() {
         let mut server = mockito::Server::new();
         let _mock = server
-            .mock("POST", "/v5/personas/search")
+            .mock("POST", "/personas/search")
             .with_status(401)
             .create();
 
@@ -713,7 +713,7 @@ mod tests {
     fn test_403_returns_permission_error() {
         let mut server = mockito::Server::new();
         let _mock = server
-            .mock("POST", "/v5/personas/search")
+            .mock("POST", "/personas/search")
             .with_status(403)
             .create();
 
@@ -726,7 +726,7 @@ mod tests {
     fn test_404_returns_not_found_error() {
         let mut server = mockito::Server::new();
         let _mock = server
-            .mock("POST", "/v5/personas/get")
+            .mock("POST", "/personas/get")
             .with_status(404)
             .with_body("persona not found")
             .create();
@@ -740,7 +740,7 @@ mod tests {
     fn test_500_returns_api_error() {
         let mut server = mockito::Server::new();
         let _mock = server
-            .mock("POST", "/v5/personas/search")
+            .mock("POST", "/personas/search")
             .with_status(500)
             .with_body("Internal Server Error")
             .create();
@@ -761,7 +761,7 @@ mod tests {
     fn test_license_key_sent_as_header() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("POST", "/v5/personas/search")
+            .mock("POST", "/personas/search")
             .match_header("X-License-Key", "test-key-123")
             .with_status(200)
             .with_header("content-type", "application/json")
