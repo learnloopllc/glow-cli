@@ -98,7 +98,7 @@ pub(crate) fn cmd_sessions(mode: OutputMode) -> Result<()> {
 
     output::print_result(mode, &list, |l| {
         if l.sessions.is_empty() {
-            println!("No active sessions. Run 'learnloop login' to authenticate.");
+            println!("No active sessions. Run 'glow login' to authenticate.");
         } else {
             println!("{} ({} active)\n", "Sessions".bold(), l.sessions.len());
             for s in &l.sessions {

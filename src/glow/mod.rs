@@ -1,8 +1,7 @@
 // glow/mod.rs — HTTP client for Glow instance APIs
 //
 // Each Glow instance is a separate deployment with its own URL.
-// Auth: X-License-Key (license key) + Bearer token (OAuth) — dual auth
-// Token is auto-loaded from the stored auth for the instance URL.
+// Auth: Bearer token (OAuth) — auto-loaded from stored auth.
 
 pub mod api;
 pub mod types;
@@ -17,12 +16,11 @@ use crate::api_common::{api_request, api_request_raw, Auth};
 pub struct GlowClient {
     base_url: String,
     http: blocking::Client,
-    license_key: Option<String>,
     token: Option<String>,
 }
 
 impl GlowClient {
-    pub fn new(base_url: &str, license_key: Option<&str>) -> Self {
+    pub fn new(base_url: &str) -> Self {
         // Auto-load OAuth token from stored auth for this Glow instance
         let token = crate::auth::get_token(base_url)
             .ok()
@@ -31,7 +29,6 @@ impl GlowClient {
         GlowClient {
             base_url: base_url.trim_end_matches('/').to_string(),
             http: blocking::Client::new(),
-            license_key: license_key.map(|s| s.to_string()),
             token,
         }
     }
@@ -41,14 +38,9 @@ impl GlowClient {
     }
 
     fn auth(&self) -> Auth<'_> {
-        match (&self.license_key, &self.token) {
-            (Some(k), Some(t)) => Auth::Dual {
-                license_key: k,
-                token: t,
-            },
-            (Some(k), None) => Auth::LicenseKey(k),
-            (None, Some(t)) => Auth::Bearer(t),
-            (None, None) => Auth::None,
+        match &self.token {
+            Some(t) => Auth::Bearer(t),
+            None => Auth::None,
         }
     }
 
@@ -59,9 +51,6 @@ impl GlowClient {
         url: &str,
     ) -> blocking::RequestBuilder {
         let mut req = self.http.request(method, url);
-        if let Some(ref k) = self.license_key {
-            req = req.header("X-License-Key", k);
-        }
         if let Some(ref t) = self.token {
             req = req.header("Authorization", format!("Bearer {}", t));
         }
@@ -414,7 +403,7 @@ mod tests {
             .with_body(r#"{"status": "healthy", "version": "1.2.3"}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client.health().unwrap();
         assert_eq!(result.status, "healthy");
         assert_eq!(result.version, Some("1.2.3".into()));
@@ -433,7 +422,7 @@ mod tests {
             .with_body(r#"{"entries": [], "total_count": 0}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client.resource_action("personas", "search", None).unwrap();
         assert_eq!(result["total_count"], 0);
         mock.assert();
@@ -449,7 +438,7 @@ mod tests {
             .with_body(r#"{"scenario_id": "s-1", "name": "Test"}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client
             .resource_action(
                 "scenarios",
@@ -471,7 +460,7 @@ mod tests {
             .with_body(r#"{"attempt_id": "a-1"}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client
             .resource_action("attempt", "start", Some(json!({"scenario_id": "s-1"})))
             .unwrap();
@@ -491,7 +480,7 @@ mod tests {
             .with_body(r#"{"profile_id": "p-1", "name": "Alice", "role": "admin"}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client.context().unwrap();
         assert_eq!(result["profile_id"], "p-1");
         assert_eq!(result["name"], "Alice");
@@ -508,7 +497,7 @@ mod tests {
             .with_body(r#"{"emulating": true, "target_profile_id": "p-2", "ttl": 300}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client.emulate("p-2", 300).unwrap();
         assert_eq!(result["emulating"], true);
         assert_eq!(result["ttl"], 300);
@@ -525,7 +514,7 @@ mod tests {
             .with_body(r#"{"emulating": false}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client.unemulate().unwrap();
         assert_eq!(result["emulating"], false);
         mock.assert();
@@ -541,7 +530,7 @@ mod tests {
             .with_body(r#"{"job_id": "j-1", "status": "queued"}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client.generate("grp-1", None).unwrap();
         assert_eq!(result["job_id"], "j-1");
         mock.assert();
@@ -557,7 +546,7 @@ mod tests {
             .with_body(r#"{"job_id": "j-2", "status": "queued"}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client
             .generate("grp-1", Some(json!({"count": 10})))
             .unwrap();
@@ -579,7 +568,7 @@ mod tests {
             .with_body("data: {\"event\": \"created\"}\n\n")
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let resp = client.stream("personas", "create", None, None).unwrap();
         assert!(resp.status().is_success());
         mock.assert();
@@ -602,7 +591,7 @@ mod tests {
         let file_path = dir.path().join("test.txt");
         std::fs::write(&file_path, b"hello").unwrap();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client
             .media_upload("documents", "file", file_path.to_str().unwrap())
             .unwrap();
@@ -620,7 +609,7 @@ mod tests {
             .with_body(r#"{"upload_id": "up-2", "upload_url": "/documents/file/up-2"}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client
             .media_create("documents", "file", "report.pdf", Some(1024))
             .unwrap();
@@ -638,7 +627,7 @@ mod tests {
             .with_body(r#"{"types": ["mp4", "webm"]}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client.media_discover("scenarios", "video", None).unwrap();
         assert_eq!(result["types"][0], "mp4");
         mock.assert();
@@ -654,7 +643,7 @@ mod tests {
             .with_body(r#"{"offset": 512, "length": 1024}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client.media_status("documents", "file", "up-1").unwrap();
         assert_eq!(result["offset"], 512);
         mock.assert();
@@ -670,7 +659,7 @@ mod tests {
             .with_body(r#"{"finalized": true}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client
             .media_finalize("documents", "file", "up-1", None)
             .unwrap();
@@ -688,7 +677,7 @@ mod tests {
             .with_body(r#"{"columns": ["name"], "rows": 3}"#)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let result = client.media_preview("documents", "file", "up-1").unwrap();
         assert_eq!(result["rows"], 3);
         mock.assert();
@@ -704,7 +693,7 @@ mod tests {
             .with_status(401)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let err = client.resource_action("personas", "search", None).unwrap_err();
         assert!(err.to_string().contains("Authentication failed"));
     }
@@ -717,7 +706,7 @@ mod tests {
             .with_status(403)
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let err = client.resource_action("personas", "search", None).unwrap_err();
         assert!(err.to_string().contains("Permission denied"));
     }
@@ -731,7 +720,7 @@ mod tests {
             .with_body("persona not found")
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let err = client.resource_action("personas", "get", Some(json!({"persona_id": "x"}))).unwrap_err();
         assert!(err.to_string().contains("not found"));
     }
@@ -745,32 +734,16 @@ mod tests {
             .with_body("Internal Server Error")
             .create();
 
-        let client = GlowClient::new(&server.url(), None);
+        let client = GlowClient::new(&server.url());
         let err = client.resource_action("personas", "search", None).unwrap_err();
         assert!(err.to_string().contains("API error"));
     }
 
     #[test]
     fn test_connection_refused_returns_helpful_error() {
-        let client = GlowClient::new("http://127.0.0.1:1", None);
+        let client = GlowClient::new("http://127.0.0.1:1");
         let err = client.resource_action("personas", "search", None).unwrap_err();
         assert!(err.to_string().contains("Failed to connect"));
-    }
-
-    #[test]
-    fn test_license_key_sent_as_header() {
-        let mut server = mockito::Server::new();
-        let mock = server
-            .mock("POST", "/personas/search")
-            .match_header("X-License-Key", "test-key-123")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(r#"{"entries": [], "total_count": 0}"#)
-            .create();
-
-        let client = GlowClient::new(&server.url(), Some("test-key-123"));
-        client.resource_action("personas", "search", None).unwrap();
-        mock.assert();
     }
 
     // ── SSE helper ───────────────────────────────────────────
@@ -792,49 +765,25 @@ mod tests {
         assert_eq!(events, vec!["hello", "world"]);
     }
 
-    // ── Dual auth ────────────────────────────────────────────
+    // ── Auth ──────────────────────────────────────────────────
 
     #[test]
     fn test_auth_none_when_no_credentials() {
         let client = GlowClient {
             base_url: "http://localhost".into(),
             http: blocking::Client::new(),
-            license_key: None,
             token: None,
         };
         matches!(client.auth(), Auth::None);
     }
 
     #[test]
-    fn test_auth_license_key_only() {
+    fn test_auth_bearer() {
         let client = GlowClient {
             base_url: "http://localhost".into(),
             http: blocking::Client::new(),
-            license_key: Some("key".into()),
-            token: None,
-        };
-        matches!(client.auth(), Auth::LicenseKey(_));
-    }
-
-    #[test]
-    fn test_auth_bearer_only() {
-        let client = GlowClient {
-            base_url: "http://localhost".into(),
-            http: blocking::Client::new(),
-            license_key: None,
             token: Some("tok".into()),
         };
         matches!(client.auth(), Auth::Bearer(_));
-    }
-
-    #[test]
-    fn test_auth_dual() {
-        let client = GlowClient {
-            base_url: "http://localhost".into(),
-            http: blocking::Client::new(),
-            license_key: Some("key".into()),
-            token: Some("tok".into()),
-        };
-        matches!(client.auth(), Auth::Dual { .. });
     }
 }

@@ -9,13 +9,7 @@ use reqwest::blocking;
 
 pub(crate) enum Auth<'a> {
     None,
-    LicenseKey(&'a str),
     Bearer(&'a str),
-    /// Dual auth: license key (X-License-Key) + OAuth bearer token
-    Dual {
-        license_key: &'a str,
-        token: &'a str,
-    },
 }
 
 // ── Shared request helpers ───────────────────────────────────
@@ -23,11 +17,7 @@ pub(crate) enum Auth<'a> {
 fn apply_auth(req: blocking::RequestBuilder, auth: Auth) -> blocking::RequestBuilder {
     match auth {
         Auth::None => req,
-        Auth::LicenseKey(key) => req.header("X-License-Key", key),
         Auth::Bearer(token) => req.header("Authorization", format!("Bearer {}", token)),
-        Auth::Dual { license_key, token } => req
-            .header("X-License-Key", license_key)
-            .header("Authorization", format!("Bearer {}", token)),
     }
 }
 

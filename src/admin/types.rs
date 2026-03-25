@@ -13,13 +13,11 @@ pub use super::api::latest::*;
 // client code working without changes.
 
 pub type WhoamiResponse = AuthMeResponse;
-pub type ValidateLicenseResponse = LicenseValidateValidResponse;
 pub type LicenseInfo = LicenseResponse;
 pub type LicenseDeleteResponse = DeletedResponse;
 pub type OrgListResponse = OrganizationListResponse;
 pub type Organization = OrganizationResponse;
 pub type OrgDeleteResponse = DeletedResponse;
-pub type OrgMember = MemberResponse;
 pub type OrgMembersResponse = MemberListResponse;
 pub type OrgMemberAddResponse = AddMemberResponse;
 pub type OrgMemberRemoveResponse = RemovedResponse;
@@ -28,13 +26,6 @@ pub type OrgLicenseRemoveResponse = RemovedResponse;
 pub type OrgDeploymentsResponse = DeployListResponse;
 pub type Deployment = DeploymentResponse;
 pub type DeployResponse = DeployCreateResponse;
-// UsageReportResponse — CLI expects { success: bool }
-use serde::{Deserialize, Serialize};
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UsageReportResponse {
-    pub success: bool,
-}
-pub type BillingPlan = PlanInfo;
 pub type BillingPlansResponse = PlansResponse;
 pub type BillingCheckoutResponse = CheckoutResponse;
 

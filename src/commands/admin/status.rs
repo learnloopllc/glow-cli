@@ -44,7 +44,7 @@ pub(crate) fn cmd_network(api_url: &str, mode: OutputMode) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn cmd_status(api_url: &str, license_key: &Option<String>, mode: OutputMode) -> Result<()> {
+pub(crate) fn cmd_status(api_url: &str, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
     use serde::Serialize;
 
@@ -54,7 +54,6 @@ pub(crate) fn cmd_status(api_url: &str, license_key: &Option<String>, mode: Outp
         config_exists: bool,
         api_url: String,
         api_status: String,
-        license_key_set: bool,
     }
 
     let config_path = config::Config::config_path();
@@ -74,7 +73,6 @@ pub(crate) fn cmd_status(api_url: &str, license_key: &Option<String>, mode: Outp
         config_exists,
         api_url: api_url.to_string(),
         api_status: api_status.to_string(),
-        license_key_set: license_key.is_some(),
     };
 
     output::print_result(mode, &report, |r| {
@@ -95,14 +93,6 @@ pub(crate) fn cmd_status(api_url: &str, license_key: &Option<String>, mode: Outp
                 "connected".green().to_string()
             } else {
                 "unreachable".red().to_string()
-            }
-        );
-        println!(
-            "  License Key: {}",
-            if r.license_key_set {
-                "set".green().to_string()
-            } else {
-                "not set".yellow().to_string()
             }
         );
     });

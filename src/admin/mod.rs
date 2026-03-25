@@ -14,12 +14,11 @@ use crate::api_common::{api_request, Auth};
 pub struct AdminClient {
     base_url: String,
     http: blocking::Client,
-    license_key: Option<String>,
     token: Option<String>,
 }
 
 impl AdminClient {
-    pub fn new(base_url: &str, license_key: Option<&str>) -> Self {
+    pub fn new(base_url: &str) -> Self {
         let token = crate::auth::get_token(base_url)
             .ok()
             .map(|t| t.access_token);
@@ -27,7 +26,6 @@ impl AdminClient {
         AdminClient {
             base_url: base_url.trim_end_matches('/').to_string(),
             http: blocking::Client::new(),
-            license_key: license_key.map(|s| s.to_string()),
             token,
         }
     }
@@ -37,7 +35,6 @@ impl AdminClient {
         AdminClient {
             base_url: base_url.trim_end_matches('/').to_string(),
             http: blocking::Client::new(),
-            license_key: None,
             token: Some(token.to_string()),
         }
     }
@@ -49,13 +46,6 @@ impl AdminClient {
     fn bearer_auth(&self) -> Auth<'_> {
         match &self.token {
             Some(t) => Auth::Bearer(t),
-            None => Auth::None,
-        }
-    }
-
-    fn license_auth(&self) -> Auth<'_> {
-        match &self.license_key {
-            Some(k) => Auth::LicenseKey(k),
             None => Auth::None,
         }
     }
@@ -73,19 +63,6 @@ impl AdminClient {
     }
 
     // ── Licenses ────────────────────────────────────────────
-
-    pub fn validate_license(&self) -> Result<types::ValidateLicenseResponse> {
-        let key = self.license_key.as_deref().ok_or_else(|| {
-            anyhow::anyhow!("No license key set. Use --license-key or set LEARNLOOP_LICENSE_KEY.")
-        })?;
-        api_request(
-            &self.http,
-            reqwest::Method::POST,
-            &self.url("/licenses/validate"),
-            Some(json!({ "key": key })),
-            self.bearer_auth(),
-        )
-    }
 
     pub fn license_list(&self, active_only: bool) -> Result<types::LicenseListResponse> {
         let query = if active_only { "?active_only=true" } else { "" };
@@ -366,25 +343,6 @@ impl AdminClient {
     }
 
     // ── Usage ───────────────────────────────────────────────
-
-    pub fn usage_report(
-        &self,
-        license_id: &str,
-        entry_hash: &str,
-        simulation_count: i64,
-    ) -> Result<types::UsageReportResponse> {
-        api_request(
-            &self.http,
-            reqwest::Method::POST,
-            &self.url("/usage/report"),
-            Some(json!({
-                "license_id": license_id,
-                "entry_hash": entry_hash,
-                "simulation_count": simulation_count
-            })),
-            self.license_auth(),
-        )
-    }
 
     pub fn usage_summary(&self, license_id: &str) -> Result<types::UsageSummaryResponse> {
         api_request(

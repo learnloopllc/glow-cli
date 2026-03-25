@@ -12,7 +12,6 @@ mod commands;
 mod config;
 mod glow;
 mod admin;
-mod ledger;
 mod output;
 mod resource;
 
@@ -30,10 +29,6 @@ struct Cli {
     /// Glow instance URL
     #[arg(long, env = "GLOW_INSTANCE_URL")]
     instance_url: Option<String>,
-
-    /// License key
-    #[arg(long, env = "GLOW_LICENSE_KEY")]
-    license_key: Option<String>,
 
     /// OAuth client ID
     #[arg(long, env = "GLOW_CLIENT_ID")]
@@ -115,13 +110,6 @@ enum Commands {
         name: String,
     },
 
-    /// Hash-based ledger operations
-    #[command(alias = "l")]
-    Ledger {
-        #[command(subcommand)]
-        action: LedgerCommands,
-    },
-
     /// Platform administration (LearnLoop management plane)
     Admin {
         #[command(subcommand)]
@@ -198,8 +186,6 @@ enum LicenseCommands {
         #[arg(long)]
         active: bool,
     },
-    /// Validate your license key
-    Validate,
     /// Create a new license
     Create {
         /// License key string
@@ -400,28 +386,6 @@ enum InstanceCommands {
     },
 }
 
-#[derive(Subcommand)]
-enum LedgerCommands {
-    /// Verify the integrity of a ledger chain
-    Verify {
-        /// Path to the ledger directory
-        #[arg(long, env = "GLOW_LEDGER_PATH")]
-        path: String,
-    },
-    /// Show ledger chain status and statistics
-    Status {
-        /// Path to the ledger directory
-        #[arg(long, env = "GLOW_LEDGER_PATH")]
-        path: String,
-    },
-    /// Sync local ledger entries to LearnLoop API for billing
-    Sync {
-        /// Path to the ledger directory
-        #[arg(long, env = "GLOW_LEDGER_PATH")]
-        path: String,
-    },
-}
-
 // ── CLI spec generation ───────────────────────────────────────
 
 fn dump_command_spec(cmd: &clap::Command) -> serde_json::Value {
@@ -557,7 +521,6 @@ fn main() -> Result<()> {
         cfg.api_url.as_deref(),
         "https://api.learn-loop.org",
     );
-    let license_key = cli.license_key.or(cfg.license_key.clone());
     let client_id = config::resolve_option(
         cli.client_id.as_deref(),
         cfg.client_id.as_deref(),
@@ -579,12 +542,12 @@ fn main() -> Result<()> {
         }
         Commands::Health => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            let client = glow::GlowClient::new(&glow_url);
             glow_cmd::cmd_health(&client, mode)?
         }
         Commands::Context => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            let client = glow::GlowClient::new(&glow_url);
             glow_cmd::cmd_context(&client, mode)?
         }
         Commands::Emulate {
@@ -592,17 +555,17 @@ fn main() -> Result<()> {
             ttl,
         } => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            let client = glow::GlowClient::new(&glow_url);
             glow_cmd::cmd_emulate(&client, &target_profile_id, ttl, mode)?
         }
         Commands::Unemulate => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            let client = glow::GlowClient::new(&glow_url);
             glow_cmd::cmd_unemulate(&client, mode)?
         }
         Commands::Generate { group_id, body } => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            let client = glow::GlowClient::new(&glow_url);
             glow_cmd::cmd_generate(&client, &group_id, body.as_deref(), mode)?
         }
         Commands::Stream {
@@ -612,7 +575,7 @@ fn main() -> Result<()> {
             cursor,
         } => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            let client = glow::GlowClient::new(&glow_url);
             glow_cmd::cmd_stream(
                 &client,
                 &artifact,
@@ -625,7 +588,7 @@ fn main() -> Result<()> {
 
         // ── Admin commands (LearnLoop management plane) ──────
         Commands::Admin { action } => {
-            dispatch_admin(action, &api_url, &license_key, &client_id, cli.yes, mode)?
+            dispatch_admin(action, &api_url, &client_id, cli.yes, mode)?
         }
 
         // ── Instance management ──────────────────────────────
@@ -654,29 +617,10 @@ fn main() -> Result<()> {
             }
         }
 
-        // ── Ledger (bridges both) ───────────────────────────
-        Commands::Ledger { action } => {
-            let key = license_key
-                .as_deref()
-                .ok_or_else(|| anyhow::anyhow!("License key required for ledger operations. Use --license-key or set GLOW_LICENSE_KEY."))?;
-            match action {
-                LedgerCommands::Verify { path } => {
-                    admin_cmd::ledger::cmd_ledger_verify(&path, key, mode)?
-                }
-                LedgerCommands::Status { path } => {
-                    admin_cmd::ledger::cmd_ledger_status(&path, key, mode)?
-                }
-                LedgerCommands::Sync { path } => {
-                    let ll_client = admin::AdminClient::new(&api_url, Some(key));
-                    admin_cmd::ledger::cmd_ledger_sync(&path, key, &ll_client, mode)?
-                }
-            }
-        }
-
         // ── Generic resource dispatch ────────────────────────
         Commands::Resource(args) => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            let client = glow::GlowClient::new(&glow_url, license_key.as_deref());
+            let client = glow::GlowClient::new(&glow_url);
             dispatch_resource(&client, &args, mode)?
         }
     }
@@ -756,7 +700,6 @@ fn dispatch_instances(
 fn dispatch_admin(
     action: AdminCommands,
     api_url: &str,
-    license_key: &Option<String>,
     client_id: &str,
     yes: bool,
     mode: OutputMode,
@@ -768,19 +711,18 @@ fn dispatch_admin(
         AdminCommands::Logout => admin_cmd::auth::cmd_logout(api_url, mode)?,
         AdminCommands::Sessions => admin_cmd::auth::cmd_sessions(mode)?,
         AdminCommands::Whoami => {
-            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url);
             admin_cmd::auth::cmd_whoami(&ll, mode)?
         }
         AdminCommands::Network => admin_cmd::status::cmd_network(api_url, mode)?,
-        AdminCommands::Status => admin_cmd::status::cmd_status(api_url, license_key, mode)?,
+        AdminCommands::Status => admin_cmd::status::cmd_status(api_url, mode)?,
 
         AdminCommands::Licenses { action } => {
-            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url);
             match action {
                 LicenseCommands::List { active } => {
                     admin_cmd::licenses::cmd_license_list(&ll, active, mode)?
                 }
-                LicenseCommands::Validate => admin_cmd::licenses::cmd_license_validate(&ll, mode)?,
                 LicenseCommands::Create { key, expiry } => {
                     admin_cmd::licenses::cmd_license_create(&ll, &key, &expiry, mode)?
                 }
@@ -804,7 +746,7 @@ fn dispatch_admin(
         }
 
         AdminCommands::Orgs { action } => {
-            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url);
             match action {
                 OrgCommands::List => admin_cmd::orgs::cmd_org_list(&ll, mode)?,
                 OrgCommands::Create { name, description } => {
@@ -850,12 +792,12 @@ fn dispatch_admin(
         }
 
         AdminCommands::Usage { license_id } => {
-            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url);
             admin_cmd::usage::cmd_usage(&ll, &license_id, mode)?
         }
 
         AdminCommands::Deploy { action } => {
-            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url);
             match action {
                 DeployCommands::Create {
                     license_id,
@@ -885,7 +827,7 @@ fn dispatch_admin(
         }
 
         AdminCommands::Billing { action } => {
-            let ll = admin::AdminClient::new(api_url, license_key.as_deref());
+            let ll = admin::AdminClient::new(api_url);
             match action {
                 BillingCommands::Plans => admin_cmd::billing::cmd_billing_plans(&ll, mode)?,
                 BillingCommands::Status { org_id } => {

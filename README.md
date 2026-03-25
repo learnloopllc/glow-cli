@@ -1,6 +1,6 @@
-# LearnLoop CLI
+# Glow CLI
 
-Rust-based CLI for the LearnLoop platform. Talks to both the central LearnLoop API and individual Glow instances.
+Rust-based CLI for the Glow platform. Talks to both the central LearnLoop API and individual Glow instances.
 
 ## Install
 
@@ -8,19 +8,17 @@ Rust-based CLI for the LearnLoop platform. Talks to both the central LearnLoop A
 cargo build --release
 ```
 
-Produces two binaries: `learnloop` (full) and `ll` (alias).
+Produces two binaries: `glow` (full) and `glw` (alias).
 
 ## Usage
 
 ```bash
 # Configure
-export LEARNLOOP_LICENSE_KEY=your-key
 export GLOW_API_URL=https://your-instance.example.com
 
 # Commands
-learnloop login                     # OAuth login
-learnloop network                   # Connectivity check
-learnloop ledger status             # Audit ledger
-learnloop glow personas list        # Glow instance commands
-ll glow personas list               # Short form
+glow login                     # OAuth login
+glow admin network             # Connectivity check
+glow personas list             # Glow instance commands
+glw personas list              # Short form
 ```

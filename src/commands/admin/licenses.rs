@@ -34,26 +34,6 @@ pub(crate) fn cmd_license_list(
     Ok(())
 }
 
-pub(crate) fn cmd_license_validate(client: &AdminClient, mode: OutputMode) -> Result<()> {
-    use colored::Colorize;
-
-    let resp = client.validate_license()?;
-    output::print_result(mode, &resp, |r| {
-        if r.valid {
-            println!("{} License is valid", "OK".green().bold());
-            if let Some(lic) = &r.license {
-                println!("  License ID: {}", lic.id.dimmed());
-            }
-        } else {
-            println!("{} License is invalid", "FAIL".red().bold());
-            if let Some(msg) = &r.message {
-                println!("  {}", msg);
-            }
-        }
-    });
-    Ok(())
-}
-
 pub(crate) fn cmd_license_create(
     client: &AdminClient,
     key: &str,

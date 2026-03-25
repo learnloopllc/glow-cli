@@ -176,14 +176,17 @@ pub fn discover(server_url: &str) -> Result<OidcDiscovery> {
 
 /// Generate a random state parameter for CSRF protection
 fn generate_state() -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
     let pid = std::process::id();
-    blake3::hash(format!("oauth-state:{}:{}", nanos, pid).as_bytes())
-        .to_hex()[..32]
-        .to_string()
+    let mut hasher = DefaultHasher::new();
+    nanos.hash(&mut hasher);
+    pid.hash(&mut hasher);
+    format!("{:016x}{:016x}", hasher.finish(), nanos as u64)
 }
 
 /// Percent-encode a URL for use in a query parameter
