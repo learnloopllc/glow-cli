@@ -324,25 +324,6 @@ fn test_admin_status_json_output() {
 }
 
 #[test]
-fn test_admin_licenses_list_help() {
-    Command::cargo_bin("glow")
-        .unwrap()
-        .args(["admin", "licenses", "list", "--help"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("List all licenses"));
-}
-
-#[test]
-fn test_admin_licenses_alias() {
-    Command::cargo_bin("glow")
-        .unwrap()
-        .args(["admin", "lic", "--help"])
-        .assert()
-        .success();
-}
-
-#[test]
 fn test_admin_orgs_list_help() {
     Command::cargo_bin("glow")
         .unwrap()
@@ -381,23 +362,13 @@ fn test_admin_billing_plans_help() {
 }
 
 #[test]
-fn test_admin_usage_requires_license_id() {
+fn test_admin_usage_requires_org_id() {
     Command::cargo_bin("glow")
         .unwrap()
         .args(["admin", "usage"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("LICENSE_ID"));
-}
-
-#[test]
-fn test_admin_license_delete_without_yes_aborts() {
-    Command::cargo_bin("glow")
-        .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "admin", "licenses", "delete", "lic-1"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Aborted"));
+        .stderr(predicate::str::contains("ORG_ID"));
 }
 
 #[test]

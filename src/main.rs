@@ -144,13 +144,6 @@ enum AdminCommands {
     /// Show connection and authentication status
     Status,
 
-    /// License management
-    #[command(alias = "lic")]
-    Licenses {
-        #[command(subcommand)]
-        action: LicenseCommands,
-    },
-
     /// Organization management
     #[command(alias = "org")]
     Orgs {
@@ -158,10 +151,10 @@ enum AdminCommands {
         action: OrgCommands,
     },
 
-    /// View usage summary for a license
+    /// View usage summary for an organization
     Usage {
-        /// License ID to view usage for
-        license_id: String,
+        /// Organization ID to view usage for
+        org_id: String,
     },
 
     /// Deploy a new Glow instance
@@ -174,43 +167,6 @@ enum AdminCommands {
     Billing {
         #[command(subcommand)]
         action: BillingCommands,
-    },
-}
-
-#[derive(Subcommand)]
-enum LicenseCommands {
-    /// List all licenses
-    #[command(alias = "ls")]
-    List {
-        /// Only show active licenses
-        #[arg(long)]
-        active: bool,
-    },
-    /// Create a new license
-    Create {
-        /// License key string
-        #[arg(long)]
-        key: String,
-        /// Expiry date (e.g. 2026-12-31)
-        #[arg(long)]
-        expiry: String,
-    },
-    /// Update an existing license
-    Update {
-        /// License ID
-        id: String,
-        #[arg(long)]
-        key: Option<String>,
-        #[arg(long)]
-        expiry: Option<String>,
-        #[arg(long)]
-        active: Option<bool>,
-    },
-    /// Delete a license
-    #[command(alias = "rm")]
-    Delete {
-        /// License ID
-        id: String,
     },
 }
 
@@ -254,13 +210,6 @@ enum OrgCommands {
         #[command(subcommand)]
         action: OrgMemberCommands,
     },
-    /// Manage organization license
-    License {
-        /// Organization ID
-        id: String,
-        #[command(subcommand)]
-        action: OrgLicenseCommands,
-    },
     /// List organization deployments
     Deployments {
         /// Organization ID
@@ -284,20 +233,6 @@ enum OrgMemberCommands {
         /// User ID to remove
         user_id: String,
     },
-}
-
-#[derive(Subcommand)]
-enum OrgLicenseCommands {
-    /// Show current license
-    Get,
-    /// Assign a license
-    Set {
-        /// License ID to assign
-        license_id: String,
-    },
-    /// Remove the assigned license
-    #[command(alias = "rm")]
-    Remove,
 }
 
 #[derive(Subcommand)]
@@ -329,21 +264,24 @@ enum DeployCommands {
     /// Create a new Glow deployment
     #[command(alias = "new")]
     Create {
-        /// License ID to deploy under
+        /// Organization ID
         #[arg(long)]
-        license_id: String,
+        org_id: String,
         /// Deployment name
         #[arg(long)]
         name: String,
         /// Subdomain (e.g. "acme" for acme.learn-loop.org)
         #[arg(long)]
         subdomain: String,
+        /// Version (semver, e.g. v1.0.0)
+        #[arg(long)]
+        version: String,
         /// Base domain (default: learn-loop.org)
         #[arg(long)]
         base_domain: Option<String>,
-        /// Make the repo public
+        /// Component type (api or client)
         #[arg(long)]
-        public: bool,
+        component_type: Option<String>,
     },
     /// Stop a running deployment
     Stop {
@@ -717,34 +655,6 @@ fn dispatch_admin(
         AdminCommands::Network => admin_cmd::status::cmd_network(api_url, mode)?,
         AdminCommands::Status => admin_cmd::status::cmd_status(api_url, mode)?,
 
-        AdminCommands::Licenses { action } => {
-            let ll = admin::AdminClient::new(api_url);
-            match action {
-                LicenseCommands::List { active } => {
-                    admin_cmd::licenses::cmd_license_list(&ll, active, mode)?
-                }
-                LicenseCommands::Create { key, expiry } => {
-                    admin_cmd::licenses::cmd_license_create(&ll, &key, &expiry, mode)?
-                }
-                LicenseCommands::Update {
-                    id,
-                    key,
-                    expiry,
-                    active,
-                } => admin_cmd::licenses::cmd_license_update(
-                    &ll,
-                    &id,
-                    key.as_deref(),
-                    expiry.as_deref(),
-                    active,
-                    mode,
-                )?,
-                LicenseCommands::Delete { id } => {
-                    admin_cmd::licenses::cmd_license_delete(&ll, &id, yes, mode)?
-                }
-            }
-        }
-
         AdminCommands::Orgs { action } => {
             let ll = admin::AdminClient::new(api_url);
             match action {
@@ -776,42 +686,35 @@ fn dispatch_admin(
                         admin_cmd::orgs::cmd_org_member_remove(&ll, &id, &user_id, yes, mode)?
                     }
                 },
-                OrgCommands::License { id, action } => match action {
-                    OrgLicenseCommands::Get => admin_cmd::orgs::cmd_org_license(&ll, &id, mode)?,
-                    OrgLicenseCommands::Set { license_id } => {
-                        admin_cmd::orgs::cmd_org_license_set(&ll, &id, &license_id, mode)?
-                    }
-                    OrgLicenseCommands::Remove => {
-                        admin_cmd::orgs::cmd_org_license_remove(&ll, &id, yes, mode)?
-                    }
-                },
                 OrgCommands::Deployments { id } => {
                     admin_cmd::orgs::cmd_org_deployments(&ll, &id, mode)?
                 }
             }
         }
 
-        AdminCommands::Usage { license_id } => {
+        AdminCommands::Usage { org_id } => {
             let ll = admin::AdminClient::new(api_url);
-            admin_cmd::usage::cmd_usage(&ll, &license_id, mode)?
+            admin_cmd::usage::cmd_usage(&ll, &org_id, mode)?
         }
 
         AdminCommands::Deploy { action } => {
             let ll = admin::AdminClient::new(api_url);
             match action {
                 DeployCommands::Create {
-                    license_id,
+                    org_id,
                     name,
                     subdomain,
+                    version,
                     base_domain,
-                    public,
+                    component_type,
                 } => admin_cmd::deploy::cmd_deploy_create(
                     &ll,
-                    &license_id,
+                    &org_id,
                     &name,
                     &subdomain,
+                    &version,
                     base_domain.as_deref(),
-                    !public,
+                    component_type.as_deref(),
                     mode,
                 )?,
                 DeployCommands::Stop { id } => {

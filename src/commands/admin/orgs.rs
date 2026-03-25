@@ -165,68 +165,6 @@ pub(crate) fn cmd_org_member_remove(
     Ok(())
 }
 
-pub(crate) fn cmd_org_license(client: &AdminClient, org_id: &str, mode: OutputMode) -> Result<()> {
-    use colored::Colorize;
-
-    let resp = client.org_license(org_id)?;
-    output::print_result(mode, &resp, |r| {
-        println!("{}", "Organization License".bold());
-        println!("  Plan: {}", r.plan);
-        match &r.license {
-            Some(lic) => {
-                println!("  License ID: {}", lic.id.dimmed());
-                if let Some(exp) = &lic.expiry {
-                    println!("  Expiry:     {}", exp);
-                }
-            }
-            None => println!("  License:    {}", "none assigned".dimmed()),
-        }
-    });
-    Ok(())
-}
-
-pub(crate) fn cmd_org_license_set(
-    client: &AdminClient,
-    org_id: &str,
-    license_id: &str,
-    mode: OutputMode,
-) -> Result<()> {
-    use colored::Colorize;
-
-    let resp = client.org_license_set(org_id, license_id)?;
-    output::print_result(mode, &resp, |_| {
-        println!(
-            "{} Assigned license {} to organization",
-            "OK".green().bold(),
-            license_id.dimmed()
-        );
-    });
-    Ok(())
-}
-
-pub(crate) fn cmd_org_license_remove(
-    client: &AdminClient,
-    org_id: &str,
-    yes: bool,
-    mode: OutputMode,
-) -> Result<()> {
-    use colored::Colorize;
-
-    if !output::confirm("Remove license from organization?", yes) {
-        println!("Aborted.");
-        return Ok(());
-    }
-
-    let resp = client.org_license_remove(org_id)?;
-    output::print_result(mode, &resp, |_| {
-        println!(
-            "{} Removed license from organization",
-            "OK".green().bold()
-        );
-    });
-    Ok(())
-}
-
 pub(crate) fn cmd_org_deployments(
     client: &AdminClient,
     org_id: &str,

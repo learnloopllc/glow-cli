@@ -7,22 +7,14 @@
 pub use super::api::latest::*;
 
 // ── Aliases (API name → CLI name) ───────────────────────────────
-//
-// The generated types use the API's response model names. The CLI
-// historically used different names. These aliases keep existing
-// client code working without changes.
 
 pub type WhoamiResponse = AuthMeResponse;
-pub type LicenseInfo = LicenseResponse;
-pub type LicenseDeleteResponse = DeletedResponse;
 pub type OrgListResponse = OrganizationListResponse;
 pub type Organization = OrganizationResponse;
 pub type OrgDeleteResponse = DeletedResponse;
 pub type OrgMembersResponse = MemberListResponse;
 pub type OrgMemberAddResponse = AddMemberResponse;
 pub type OrgMemberRemoveResponse = RemovedResponse;
-pub type OrgLicenseSetResponse = AssignedResponse;
-pub type OrgLicenseRemoveResponse = RemovedResponse;
 pub type OrgDeploymentsResponse = DeployListResponse;
 pub type Deployment = DeploymentResponse;
 pub type DeployResponse = DeployCreateResponse;
@@ -45,14 +37,6 @@ mod tests {
     }
 
     #[test]
-    fn test_deserialize_license_list() {
-        let json = r#"{"licenses": [{"id": "lic-1", "key": "abc", "expiry": "2026-12-31", "active": true}]}"#;
-        let resp: LicenseListResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(resp.licenses.len(), 1);
-        assert_eq!(resp.licenses[0].id, "lic-1");
-    }
-
-    #[test]
     fn test_deserialize_deployment() {
         let json = r#"{"deployment": {"id": "d-1", "name": "test-glow", "subdomain": "test", "base_domain": "learn-loop.org", "domain": "test.learn-loop.org", "status": "running", "health": "healthy", "hosting_type": "hosted", "active": true}, "repo": null, "invite": null}"#;
         let resp: DeployResponse = serde_json::from_str(json).unwrap();
@@ -68,9 +52,9 @@ mod tests {
 
     #[test]
     fn test_deserialize_billing_plans() {
-        let json = r#"{"plans": [{"id": "pro", "name": "LearnLoop Pro", "pricing": "$49/mo", "included": 10, "overage_unit_price": "$0.10"}]}"#;
+        let json = r#"{"plans": [{"id": "pro", "name": "Glow Pro", "pricing": "$49/mo", "included": 10, "overage_unit_price": "$0.10"}]}"#;
         let resp: BillingPlansResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(resp.plans[0].id, "pro");
+        assert_eq!(resp.plans[0].name, "Glow Pro");
         assert_eq!(resp.plans[0].included, Some(10));
     }
 

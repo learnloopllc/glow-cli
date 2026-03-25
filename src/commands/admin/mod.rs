@@ -1,7 +1,6 @@
 pub mod auth;
 pub mod billing;
 pub mod deploy;
-pub mod licenses;
 pub mod orgs;
 pub mod status;
 pub mod usage;

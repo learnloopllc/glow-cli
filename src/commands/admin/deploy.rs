@@ -4,16 +4,17 @@ use crate::output::{self, OutputMode};
 
 pub(crate) fn cmd_deploy_create(
     client: &AdminClient,
-    license_id: &str,
+    org_id: &str,
     name: &str,
     subdomain: &str,
+    version: &str,
     base_domain: Option<&str>,
-    private: bool,
+    component_type: Option<&str>,
     mode: OutputMode,
 ) -> Result<()> {
     use colored::Colorize;
 
-    let resp = client.deploy(license_id, name, subdomain, base_domain, private)?;
+    let resp = client.deploy(org_id, name, subdomain, version, base_domain, component_type)?;
     output::print_result(mode, &resp, |r| {
         println!(
             "{} Deployment created: {}",

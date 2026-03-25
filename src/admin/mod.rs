@@ -62,65 +62,6 @@ impl AdminClient {
         )
     }
 
-    // ── Licenses ────────────────────────────────────────────
-
-    pub fn license_list(&self, active_only: bool) -> Result<types::LicenseListResponse> {
-        let query = if active_only { "?active_only=true" } else { "" };
-        api_request(
-            &self.http,
-            reqwest::Method::GET,
-            &self.url(&format!("/licenses{}", query)),
-            None,
-            self.bearer_auth(),
-        )
-    }
-
-    pub fn license_create(&self, key: &str, expiry: &str) -> Result<types::LicenseInfo> {
-        api_request(
-            &self.http,
-            reqwest::Method::POST,
-            &self.url("/licenses"),
-            Some(json!({ "key": key, "expiry": expiry })),
-            self.bearer_auth(),
-        )
-    }
-
-    pub fn license_update(
-        &self,
-        license_id: &str,
-        key: Option<&str>,
-        expiry: Option<&str>,
-        active: Option<bool>,
-    ) -> Result<types::LicenseInfo> {
-        let mut body = json!({});
-        if let Some(k) = key {
-            body["key"] = json!(k);
-        }
-        if let Some(e) = expiry {
-            body["expiry"] = json!(e);
-        }
-        if let Some(a) = active {
-            body["active"] = json!(a);
-        }
-        api_request(
-            &self.http,
-            reqwest::Method::PUT,
-            &self.url(&format!("/licenses/{}", license_id)),
-            Some(body),
-            self.bearer_auth(),
-        )
-    }
-
-    pub fn license_delete(&self, license_id: &str) -> Result<types::LicenseDeleteResponse> {
-        api_request(
-            &self.http,
-            reqwest::Method::DELETE,
-            &self.url(&format!("/licenses/{}", license_id)),
-            None,
-            self.bearer_auth(),
-        )
-    }
-
     // ── Organizations ───────────────────────────────────────
 
     pub fn org_list(&self) -> Result<types::OrgListResponse> {
@@ -235,40 +176,6 @@ impl AdminClient {
         )
     }
 
-    pub fn org_license(&self, org_id: &str) -> Result<types::OrgLicenseResponse> {
-        api_request(
-            &self.http,
-            reqwest::Method::GET,
-            &self.url(&format!("/organizations/{}/license", org_id)),
-            None,
-            self.bearer_auth(),
-        )
-    }
-
-    pub fn org_license_set(
-        &self,
-        org_id: &str,
-        license_id: &str,
-    ) -> Result<types::OrgLicenseSetResponse> {
-        api_request(
-            &self.http,
-            reqwest::Method::PUT,
-            &self.url(&format!("/organizations/{}/license", org_id)),
-            Some(json!({ "license_id": license_id })),
-            self.bearer_auth(),
-        )
-    }
-
-    pub fn org_license_remove(&self, org_id: &str) -> Result<types::OrgLicenseRemoveResponse> {
-        api_request(
-            &self.http,
-            reqwest::Method::DELETE,
-            &self.url(&format!("/organizations/{}/license", org_id)),
-            None,
-            self.bearer_auth(),
-        )
-    }
-
     pub fn org_deployments(&self, org_id: &str) -> Result<types::OrgDeploymentsResponse> {
         api_request(
             &self.http,
@@ -283,20 +190,24 @@ impl AdminClient {
 
     pub fn deploy(
         &self,
-        license_id: &str,
+        organization_id: &str,
         deployment_name: &str,
         subdomain: &str,
+        version: &str,
         base_domain: Option<&str>,
-        private: bool,
+        component_type: Option<&str>,
     ) -> Result<types::DeployResponse> {
         let mut body = json!({
-            "license_id": license_id,
+            "organization_id": organization_id,
             "deployment_name": deployment_name,
             "subdomain": subdomain,
-            "private": private,
+            "version": version,
         });
         if let Some(bd) = base_domain {
             body["base_domain"] = json!(bd);
+        }
+        if let Some(ct) = component_type {
+            body["component_type"] = json!(ct);
         }
         api_request(
             &self.http,
@@ -344,11 +255,11 @@ impl AdminClient {
 
     // ── Usage ───────────────────────────────────────────────
 
-    pub fn usage_summary(&self, license_id: &str) -> Result<types::UsageSummaryResponse> {
+    pub fn usage_summary(&self, org_id: &str) -> Result<types::UsageSummaryResponse> {
         api_request(
             &self.http,
             reqwest::Method::GET,
-            &self.url(&format!("/usage/summary/{}", license_id)),
+            &self.url(&format!("/usage/summary/{}", org_id)),
             None,
             self.bearer_auth(),
         )
@@ -439,55 +350,6 @@ mod tests {
     }
 
     #[test]
-    fn test_license_list_success() {
-        let mut server = mockito::Server::new();
-        let mock = server
-            .mock("GET", "/licenses")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(r#"{"licenses": [{"id": "lic-1", "key": "abc-123", "expiry": "2026-12-31", "active": true}]}"#)
-            .create();
-
-        let client = AdminClient::new_with_token(&server.url(), "tok");
-        let resp = client.license_list(false).unwrap();
-        assert_eq!(resp.licenses.len(), 1);
-        assert_eq!(resp.licenses[0].id, "lic-1");
-        mock.assert();
-    }
-
-    #[test]
-    fn test_license_create_success() {
-        let mut server = mockito::Server::new();
-        let mock = server
-            .mock("POST", "/licenses")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(r#"{"id": "lic-new", "key": "new-key", "expiry": "2027-01-01", "active": true}"#)
-            .create();
-
-        let client = AdminClient::new_with_token(&server.url(), "tok");
-        let resp = client.license_create("new-key", "2027-01-01").unwrap();
-        assert_eq!(resp.id, "lic-new");
-        mock.assert();
-    }
-
-    #[test]
-    fn test_license_delete_success() {
-        let mut server = mockito::Server::new();
-        let mock = server
-            .mock("DELETE", "/licenses/lic-1")
-            .with_status(200)
-            .with_header("content-type", "application/json")
-            .with_body(r#"{"deleted": true}"#)
-            .create();
-
-        let client = AdminClient::new_with_token(&server.url(), "tok");
-        let resp = client.license_delete("lic-1").unwrap();
-        assert!(resp.deleted);
-        mock.assert();
-    }
-
-    #[test]
     fn test_org_list_success() {
         let mut server = mockito::Server::new();
         let mock = server
@@ -563,7 +425,7 @@ mod tests {
             .create();
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
-        let resp = client.deploy("lic-1", "my-glow", "my", None, true).unwrap();
+        let resp = client.deploy("org-1", "my-glow", "my", "v1.0.0", None, None).unwrap();
         assert_eq!(resp.deployment.name, Some("my-glow".into()));
         assert_eq!(resp.deployment.status, Some("pending".into()));
         mock.assert();
@@ -669,14 +531,14 @@ mod tests {
     fn test_usage_summary_success() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("GET", "/usage/summary/lic-1")
+            .mock("GET", "/usage/summary/org-1")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"total_simulations": 25, "free_tier": 10, "free_remaining": 0, "overage_simulations": 15, "estimated_cost": "$1.50"}"#)
             .create();
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
-        let resp = client.usage_summary("lic-1").unwrap();
+        let resp = client.usage_summary("org-1").unwrap();
         assert_eq!(resp.total_simulations, 25);
         assert_eq!(resp.estimated_cost, Some("$1.50".into()));
         mock.assert();
