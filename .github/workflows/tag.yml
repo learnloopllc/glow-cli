@@ -140,7 +140,7 @@ jobs:
           tar xzf artifacts/glow-x86_64-unknown-linux-gnu.tar.gz -C /tmp
           cp /tmp/glow .
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker build -t ghcr.io/learnloopllc/glow-cli:v${VERSION} .
+          docker build --label "org.opencontainers.image.source=https://github.com/learnloopllc/glow-cli" -t ghcr.io/learnloopllc/glow-cli:v${VERSION} .
           docker push ghcr.io/learnloopllc/glow-cli:v${VERSION}
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
           if [ "$MAJOR" -ge 2 ]; then
