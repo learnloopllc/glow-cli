@@ -2,6 +2,7 @@ use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 use anyhow::Result;
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn cmd_deploy_create(
     client: &AdminClient,
     org_id: &str,

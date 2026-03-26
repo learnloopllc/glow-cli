@@ -2,8 +2,6 @@
 // Do not edit manually — regenerated on each API release.
 // Schemas: 71
 
-#![allow(dead_code, non_camel_case_types, clippy::derive_partial_eq_without_eq)]
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
