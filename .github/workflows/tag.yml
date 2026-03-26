@@ -55,7 +55,7 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             binary_ext: ""
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             binary_ext: ""
           - os: ubuntu-latest
@@ -102,6 +102,7 @@ jobs:
   release:
     name: Create Release
     needs: [tag, build]
+    if: always() && needs.tag.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
