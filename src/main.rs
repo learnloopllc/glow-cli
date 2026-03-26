@@ -773,7 +773,7 @@ fn dispatch_resource(client: &glow::GlowClient, args: &[String], mode: OutputMod
     }
 
     let action = &args[1];
-    let body = parse_body_flag(&args[2..])?;
+    let body = build_resource_body(&args[2..])?;
 
     commands::glow::cmd_resource_action(client, resource.slug(), action, body.as_deref(), mode)
 }
@@ -838,7 +838,7 @@ fn dispatch_media(
         "finalize" => {
             let id = parse_flag(rest, "--id")?
                 .ok_or_else(|| anyhow::anyhow!("--id <upload_id> is required for finalize"))?;
-            let body = parse_body_flag(rest)?;
+            let body = parse_flag(rest, "--body")?;
             glow_cmd::cmd_media_finalize(client, resource, media.slug(), &id, body.as_deref(), mode)
         }
         "discover" => {
@@ -857,9 +857,87 @@ fn dispatch_media(
     }
 }
 
-/// Parse --body <json> from a slice of extra args
-fn parse_body_flag(args: &[String]) -> Result<Option<String>> {
-    parse_flag(args, "--body")
+/// Build a JSON body string from extra args.
+///
+/// Supports two styles (can be combined):
+///   --body '{"key": "value"}'         explicit JSON (merged first)
+///   --key value --flag true           individual params folded into body
+///
+/// Values are auto-coerced: "true"/"false" → bool, integers/floats → number,
+/// "null" → null, everything else → string.
+fn build_resource_body(args: &[String]) -> Result<Option<String>> {
+    use serde_json::{json, Map, Value};
+
+    let explicit = parse_flag(args, "--body")?;
+    let params = parse_params(args)?;
+
+    if explicit.is_none() && params.is_empty() {
+        return Ok(None);
+    }
+
+    // Start with explicit --body JSON if provided
+    let mut obj: Map<String, Value> = match &explicit {
+        Some(s) => {
+            let v: Value = serde_json::from_str(s)
+                .map_err(|e| anyhow::anyhow!("Invalid JSON for --body: {}", e))?;
+            match v {
+                Value::Object(m) => m,
+                _ => anyhow::bail!("--body must be a JSON object"),
+            }
+        }
+        None => Map::new(),
+    };
+
+    // Merge --key value params (individual flags override --body keys)
+    for (k, v) in params {
+        obj.insert(k, coerce_value(&v));
+    }
+
+    Ok(Some(json!(obj).to_string()))
+}
+
+/// Parse --key value pairs from args, skipping --body and known media flags.
+fn parse_params(args: &[String]) -> Result<Vec<(String, String)>> {
+    let skip = ["--body", "--file", "--id", "--output", "--filename", "--size", "--offset"];
+    let mut pairs = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        if let Some(key) = args[i].strip_prefix("--") {
+            if skip.contains(&args[i].as_str()) {
+                i += 2; // skip flag + value
+                continue;
+            }
+            if i + 1 >= args.len() {
+                anyhow::bail!("--{} requires a value", key);
+            }
+            pairs.push((key.replace('-', "_"), args[i + 1].clone()));
+            i += 2;
+        } else {
+            i += 1;
+        }
+    }
+    Ok(pairs)
+}
+
+/// Auto-coerce a string value to the most appropriate JSON type.
+fn coerce_value(s: &str) -> serde_json::Value {
+    use serde_json::Value;
+    match s {
+        "true" => Value::Bool(true),
+        "false" => Value::Bool(false),
+        "null" => Value::Null,
+        _ => {
+            if let Ok(n) = s.parse::<i64>() {
+                Value::Number(n.into())
+            } else if let Ok(f) = s.parse::<f64>() {
+                serde_json::Number::from_f64(f)
+                    .map(Value::Number)
+                    .unwrap_or_else(|| Value::String(s.to_string()))
+            } else {
+                Value::String(s.to_string())
+            }
+        }
+    }
 }
 
 /// Parse a --flag <value> pair from a slice of extra args
