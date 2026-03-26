@@ -74,11 +74,7 @@ impl AdminClient {
         )
     }
 
-    pub fn org_create(
-        &self,
-        name: &str,
-        description: Option<&str>,
-    ) -> Result<types::Organization> {
+    pub fn org_create(&self, name: &str, description: Option<&str>) -> Result<types::Organization> {
         let mut body = json!({ "name": name });
         if let Some(d) = description {
             body["description"] = json!(d);
@@ -148,11 +144,7 @@ impl AdminClient {
         )
     }
 
-    pub fn org_member_add(
-        &self,
-        org_id: &str,
-        email: &str,
-    ) -> Result<types::OrgMemberAddResponse> {
+    pub fn org_member_add(&self, org_id: &str, email: &str) -> Result<types::OrgMemberAddResponse> {
         api_request(
             &self.http,
             reqwest::Method::POST,
@@ -339,10 +331,7 @@ mod tests {
     #[test]
     fn test_whoami_unauthorized() {
         let mut server = mockito::Server::new();
-        let _mock = server
-            .mock("GET", "/auth/me")
-            .with_status(401)
-            .create();
+        let _mock = server.mock("GET", "/auth/me").with_status(401).create();
 
         let client = AdminClient::new_with_token(&server.url(), "bad-token");
         let err = client.whoami().unwrap_err();
@@ -372,7 +361,9 @@ mod tests {
             .mock("POST", "/organizations")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(r#"{"id": "org-new", "name": "NewOrg", "description": "test", "active": true}"#)
+            .with_body(
+                r#"{"id": "org-new", "name": "NewOrg", "description": "test", "active": true}"#,
+            )
             .create();
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
@@ -425,7 +416,9 @@ mod tests {
             .create();
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
-        let resp = client.deploy("org-1", "my-glow", "my", "v1.0.0", None, None).unwrap();
+        let resp = client
+            .deploy("org-1", "my-glow", "my", "v1.0.0", None, None)
+            .unwrap();
         assert_eq!(resp.deployment.name, Some("my-glow".into()));
         assert_eq!(resp.deployment.status, Some("pending".into()));
         mock.assert();
@@ -567,7 +560,9 @@ mod tests {
             .mock("GET", "/billing/status/org-1")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(r#"{"subscribed": true, "status": "active", "stripe_subscription_id": "sub_123"}"#)
+            .with_body(
+                r#"{"subscribed": true, "status": "active", "stripe_subscription_id": "sub_123"}"#,
+            )
             .create();
 
         let client = AdminClient::new_with_token(&server.url(), "tok");

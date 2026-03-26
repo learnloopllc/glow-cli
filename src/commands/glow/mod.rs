@@ -1,6 +1,6 @@
-use anyhow::Result;
 use crate::glow::GlowClient;
 use crate::output::{self, OutputMode};
+use anyhow::Result;
 
 // ── Generic resource action ──────────────────────────────────
 
@@ -12,8 +12,10 @@ pub(crate) fn cmd_resource_action(
     mode: OutputMode,
 ) -> Result<()> {
     let body = match body_str {
-        Some(s) => Some(serde_json::from_str::<serde_json::Value>(s)
-            .map_err(|e| anyhow::anyhow!("Invalid JSON for --body: {}", e))?),
+        Some(s) => Some(
+            serde_json::from_str::<serde_json::Value>(s)
+                .map_err(|e| anyhow::anyhow!("Invalid JSON for --body: {}", e))?,
+        ),
         None => None,
     };
 
@@ -46,7 +48,7 @@ pub(crate) fn cmd_context(client: &GlowClient, mode: OutputMode) -> Result<()> {
             println!("  Role:       {}", role);
         }
         if let Some(true) = resp.get("emulating").and_then(|v| v.as_bool()) {
-            println!("  {}",  "Currently emulating another user".yellow());
+            println!("  {}", "Currently emulating another user".yellow());
         }
     });
     Ok(())
@@ -94,15 +96,21 @@ pub(crate) fn cmd_generate(
     use colored::Colorize;
 
     let body = match body_str {
-        Some(s) => Some(serde_json::from_str::<serde_json::Value>(s)
-            .map_err(|e| anyhow::anyhow!("Invalid JSON for --body: {}", e))?),
+        Some(s) => Some(
+            serde_json::from_str::<serde_json::Value>(s)
+                .map_err(|e| anyhow::anyhow!("Invalid JSON for --body: {}", e))?,
+        ),
         None => None,
     };
 
     let response = client.generate(group_id, body)?;
     output::print_result(mode, &response, |resp| {
         if let Some(job_id) = resp.get("job_id").and_then(|v| v.as_str()) {
-            println!("{} Generation queued: {}", "OK".green().bold(), job_id.dimmed());
+            println!(
+                "{} Generation queued: {}",
+                "OK".green().bold(),
+                job_id.dimmed()
+            );
         }
         if let Some(status) = resp.get("status").and_then(|v| v.as_str()) {
             println!("  Status: {}", status);
@@ -156,7 +164,12 @@ pub(crate) fn cmd_media_upload(
 
     let response = client.media_upload(resource, media_type, file_path)?;
     output::print_result(mode, &response, |resp| {
-        println!("{} Uploaded to {}/{}", "OK".green().bold(), resource, media_type);
+        println!(
+            "{} Uploaded to {}/{}",
+            "OK".green().bold(),
+            resource,
+            media_type
+        );
         println!(
             "{}",
             serde_json::to_string_pretty(resp).unwrap_or_else(|_| format!("{:?}", resp))
@@ -234,7 +247,11 @@ pub(crate) fn cmd_media_chunk(
     let response = client.media_chunk(resource, media_type, upload_id, data, offset)?;
     output::print_result(mode, &response, |resp| {
         if let Some(new_offset) = resp.get("offset").and_then(|v| v.as_u64()) {
-            println!("{} Chunk uploaded, offset now {}", "OK".green().bold(), new_offset);
+            println!(
+                "{} Chunk uploaded, offset now {}",
+                "OK".green().bold(),
+                new_offset
+            );
         }
     });
     Ok(())
@@ -268,13 +285,19 @@ pub(crate) fn cmd_media_finalize(
     use colored::Colorize;
 
     let body = match body_str {
-        Some(s) => Some(serde_json::from_str::<serde_json::Value>(s)
-            .map_err(|e| anyhow::anyhow!("Invalid JSON for --body: {}", e))?),
+        Some(s) => Some(
+            serde_json::from_str::<serde_json::Value>(s)
+                .map_err(|e| anyhow::anyhow!("Invalid JSON for --body: {}", e))?,
+        ),
         None => None,
     };
     let response = client.media_finalize(resource, media_type, upload_id, body)?;
     output::print_result(mode, &response, |resp| {
-        println!("{} Finalized upload {}", "OK".green().bold(), upload_id.dimmed());
+        println!(
+            "{} Finalized upload {}",
+            "OK".green().bold(),
+            upload_id.dimmed()
+        );
         println!(
             "{}",
             serde_json::to_string_pretty(resp).unwrap_or_else(|_| format!("{:?}", resp))

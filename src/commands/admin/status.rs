@@ -1,6 +1,6 @@
-use anyhow::Result;
 use crate::config;
 use crate::output::{self, OutputMode};
+use anyhow::Result;
 
 pub(crate) fn cmd_network(api_url: &str, mode: OutputMode) -> Result<()> {
     use colored::Colorize;

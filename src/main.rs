@@ -6,12 +6,12 @@
 //
 // The CLI talks to both.
 
+mod admin;
 mod api_common;
 mod auth;
 mod commands;
 mod config;
 mod glow;
-mod admin;
 mod output;
 mod resource;
 
@@ -525,14 +525,10 @@ fn main() -> Result<()> {
         }
 
         // ── Admin commands (LearnLoop management plane) ──────
-        Commands::Admin { action } => {
-            dispatch_admin(action, &api_url, &client_id, cli.yes, mode)?
-        }
+        Commands::Admin { action } => dispatch_admin(action, &api_url, &client_id, cli.yes, mode)?,
 
         // ── Instance management ──────────────────────────────
-        Commands::Instances { action } => {
-            dispatch_instances(action, cfg, mode)?
-        }
+        Commands::Instances { action } => dispatch_instances(action, cfg, mode)?,
         Commands::Use { name } => {
             let mut cfg = cfg;
             if !cfg.instances.contains_key(&name) {
@@ -615,7 +611,12 @@ fn dispatch_instances(
             }
             cfg.save()?;
             if mode == OutputMode::Human {
-                println!("{} Added instance '{}' ({})", "OK".green().bold(), name.bold(), url.dimmed());
+                println!(
+                    "{} Added instance '{}' ({})",
+                    "OK".green().bold(),
+                    name.bold(),
+                    url.dimmed()
+                );
             }
         }
         InstanceCommands::Remove { name } => {
@@ -674,9 +675,7 @@ fn dispatch_admin(
                     description.as_deref(),
                     mode,
                 )?,
-                OrgCommands::Delete { id } => {
-                    admin_cmd::orgs::cmd_org_delete(&ll, &id, yes, mode)?
-                }
+                OrgCommands::Delete { id } => admin_cmd::orgs::cmd_org_delete(&ll, &id, yes, mode)?,
                 OrgCommands::Members { id, action } => match action {
                     OrgMemberCommands::List => admin_cmd::orgs::cmd_org_members(&ll, &id, mode)?,
                     OrgMemberCommands::Add { email } => {
@@ -751,11 +750,7 @@ fn dispatch_admin(
 
 /// Dispatch generic resource commands: glow <resource> <action> [--body JSON] [extra args]
 /// Also handles media subcommands: glow <resource> <media_type> <action> [flags]
-fn dispatch_resource(
-    client: &glow::GlowClient,
-    args: &[String],
-    mode: OutputMode,
-) -> Result<()> {
+fn dispatch_resource(client: &glow::GlowClient, args: &[String], mode: OutputMode) -> Result<()> {
     if args.is_empty() {
         anyhow::bail!("Expected a resource name. Run 'glow --help' for usage.");
     }

@@ -53,8 +53,7 @@ impl Config {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("Failed to create config dir: {}", parent.display()))?;
         }
-        let toml_str =
-            toml::to_string_pretty(self).context("Failed to serialize config")?;
+        let toml_str = toml::to_string_pretty(self).context("Failed to serialize config")?;
         std::fs::write(&path, toml_str)
             .with_context(|| format!("Failed to write config: {}", path.display()))
     }

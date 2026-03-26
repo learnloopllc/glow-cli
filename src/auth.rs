@@ -86,14 +86,12 @@ pub fn load_token_store() -> Result<TokenStore> {
 pub fn get_token(server_url: &str) -> Result<StoredToken> {
     let store = load_token_store()?;
     let normalized = normalize_url(server_url);
-    store
-        .tokens
-        .get(&normalized)
-        .cloned()
-        .ok_or_else(|| anyhow::anyhow!(
+    store.tokens.get(&normalized).cloned().ok_or_else(|| {
+        anyhow::anyhow!(
             "Not logged in to {}. Run 'glow login' to authenticate.",
             server_url
-        ))
+        )
+    })
 }
 
 /// Save a token for a specific server URL
@@ -361,12 +359,7 @@ pub fn login(server_url: &str, client_id: &str) -> Result<StoredToken> {
     let code = wait_for_callback(&listener, &state)?;
 
     // 6. Exchange code for tokens
-    let token_resp = exchange_code(
-        &discovery.token_endpoint,
-        &code,
-        &redirect_uri,
-        client_id,
-    )?;
+    let token_resp = exchange_code(&discovery.token_endpoint, &code, &redirect_uri, client_id)?;
 
     // 7. Store token keyed by server URL
     let stored = StoredToken {
@@ -399,17 +392,26 @@ mod tests {
 
     #[test]
     fn test_normalize_url_strips_trailing_slash() {
-        assert_eq!(normalize_url("http://localhost:8000/"), "http://localhost:8000");
+        assert_eq!(
+            normalize_url("http://localhost:8000/"),
+            "http://localhost:8000"
+        );
     }
 
     #[test]
     fn test_normalize_url_no_trailing_slash() {
-        assert_eq!(normalize_url("http://localhost:8000"), "http://localhost:8000");
+        assert_eq!(
+            normalize_url("http://localhost:8000"),
+            "http://localhost:8000"
+        );
     }
 
     #[test]
     fn test_normalize_url_with_path() {
-        assert_eq!(normalize_url("https://api.example.com/v1/"), "https://api.example.com/v1");
+        assert_eq!(
+            normalize_url("https://api.example.com/v1/"),
+            "https://api.example.com/v1"
+        );
     }
 
     // ── Percent encoding ─────────────────────────────────
@@ -429,7 +431,10 @@ mod tests {
 
     #[test]
     fn test_percent_encode_spaces() {
-        assert_eq!(percent_encode("openid profile email"), "openid%20profile%20email");
+        assert_eq!(
+            percent_encode("openid profile email"),
+            "openid%20profile%20email"
+        );
     }
 
     // ── State generation ─────────────────────────────────
@@ -551,8 +556,7 @@ mod tests {
         let state_clone = state.to_string();
         let handle = std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(50));
-            let mut stream =
-                std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
             let request = format!(
                 "GET /callback?code=auth-code-xyz&state={} HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n",
                 state_clone
@@ -575,10 +579,8 @@ mod tests {
 
         let handle = std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(50));
-            let mut stream =
-                std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
-            let request =
-                "GET /callback?code=abc&state=wrong HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n";
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            let request = "GET /callback?code=abc&state=wrong HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n";
             stream.write_all(request.as_bytes()).unwrap();
             let mut buf = [0u8; 2048];
             let _ = stream.read(&mut buf);
@@ -596,8 +598,7 @@ mod tests {
 
         let handle = std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(50));
-            let mut stream =
-                std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+            let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
             let request = "GET /callback?error=access_denied&error_description=User+cancelled HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n";
             stream.write_all(request.as_bytes()).unwrap();
             let mut buf = [0u8; 2048];
@@ -628,7 +629,10 @@ mod tests {
             .create();
 
         let disc = discover(&server.url()).unwrap();
-        assert_eq!(disc.authorization_endpoint, "https://auth.example.com/authorize");
+        assert_eq!(
+            disc.authorization_endpoint,
+            "https://auth.example.com/authorize"
+        );
         assert_eq!(disc.token_endpoint, "https://auth.example.com/token");
         mock.assert();
     }

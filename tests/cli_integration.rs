@@ -294,7 +294,13 @@ fn test_admin_network_unreachable_doesnt_crash() {
 fn test_admin_network_json_output() {
     Command::cargo_bin("glow")
         .unwrap()
-        .args(["--json", "--api-url", "http://127.0.0.1:1", "admin", "network"])
+        .args([
+            "--json",
+            "--api-url",
+            "http://127.0.0.1:1",
+            "admin",
+            "network",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"api_status\""))
@@ -315,7 +321,13 @@ fn test_admin_status_human_output() {
 fn test_admin_status_json_output() {
     Command::cargo_bin("glow")
         .unwrap()
-        .args(["--json", "--api-url", "http://127.0.0.1:1", "admin", "status"])
+        .args([
+            "--json",
+            "--api-url",
+            "http://127.0.0.1:1",
+            "admin",
+            "status",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::starts_with("{"))
@@ -375,7 +387,14 @@ fn test_admin_usage_requires_org_id() {
 fn test_admin_org_delete_without_yes_aborts() {
     Command::cargo_bin("glow")
         .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "admin", "orgs", "delete", "org-1"])
+        .args([
+            "--api-url",
+            "http://127.0.0.1:1",
+            "admin",
+            "orgs",
+            "delete",
+            "org-1",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("Aborted"));
@@ -385,7 +404,14 @@ fn test_admin_org_delete_without_yes_aborts() {
 fn test_admin_deploy_destroy_without_yes_aborts() {
     Command::cargo_bin("glow")
         .unwrap()
-        .args(["--api-url", "http://127.0.0.1:1", "admin", "deploy", "destroy", "d-1"])
+        .args([
+            "--api-url",
+            "http://127.0.0.1:1",
+            "admin",
+            "deploy",
+            "destroy",
+            "d-1",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("Aborted"));
@@ -419,4 +445,3 @@ fn test_admin_deploy_list_alias() {
         .assert()
         .success();
 }
-

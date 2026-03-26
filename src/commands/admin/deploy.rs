@@ -1,6 +1,6 @@
-use anyhow::Result;
 use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
+use anyhow::Result;
 
 pub(crate) fn cmd_deploy_create(
     client: &AdminClient,
@@ -14,7 +14,14 @@ pub(crate) fn cmd_deploy_create(
 ) -> Result<()> {
     use colored::Colorize;
 
-    let resp = client.deploy(org_id, name, subdomain, version, base_domain, component_type)?;
+    let resp = client.deploy(
+        org_id,
+        name,
+        subdomain,
+        version,
+        base_domain,
+        component_type,
+    )?;
     output::print_result(mode, &resp, |r| {
         println!(
             "{} Deployment created: {}",
@@ -64,7 +71,10 @@ pub(crate) fn cmd_deploy_destroy(
     use colored::Colorize;
 
     if !output::confirm(
-        &format!("Destroy deployment {}? This cannot be undone.", deployment_id),
+        &format!(
+            "Destroy deployment {}? This cannot be undone.",
+            deployment_id
+        ),
         yes,
     ) {
         println!("Aborted.");
@@ -91,11 +101,7 @@ pub(crate) fn cmd_deploy_list(
 
     let resp = client.deploy_list(active_only)?;
     output::print_result(mode, &resp, |r| {
-        println!(
-            "{} ({} total)\n",
-            "Deployments".bold(),
-            r.deployments.len()
-        );
+        println!("{} ({} total)\n", "Deployments".bold(), r.deployments.len());
         for d in &r.deployments {
             super::print_deployment(d);
         }

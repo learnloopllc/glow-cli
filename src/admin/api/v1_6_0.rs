@@ -697,4 +697,3 @@ pub struct WorkflowRunResponse {
     #[serde(default)]
     pub updated_at: Option<String>,
 }
-

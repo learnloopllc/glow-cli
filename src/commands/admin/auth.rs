@@ -1,7 +1,7 @@
-use anyhow::Result;
-use crate::auth;
 use crate::admin::AdminClient;
+use crate::auth;
 use crate::output::{self, OutputMode};
+use anyhow::Result;
 
 pub(crate) fn cmd_login(server_url: &str, client_id: &str, mode: OutputMode) -> Result<()> {
     use colored::Colorize;

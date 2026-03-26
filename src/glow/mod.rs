@@ -45,11 +45,7 @@ impl GlowClient {
     }
 
     /// Build an authenticated request (for custom requests like uploads)
-    fn authed_request(
-        &self,
-        method: reqwest::Method,
-        url: &str,
-    ) -> blocking::RequestBuilder {
+    fn authed_request(&self, method: reqwest::Method, url: &str) -> blocking::RequestBuilder {
         let mut req = self.http.request(method, url);
         if let Some(ref t) = self.token {
             req = req.header("Authorization", format!("Bearer {}", t));
@@ -156,12 +152,7 @@ impl GlowClient {
     //   GET  /{resource}/{media}/{id}/preview     — preview
 
     /// Upload a file via multipart form
-    pub fn media_upload(
-        &self,
-        resource: &str,
-        media_type: &str,
-        file_path: &str,
-    ) -> Result<Value> {
+    pub fn media_upload(&self, resource: &str, media_type: &str, file_path: &str) -> Result<Value> {
         let path = std::path::Path::new(file_path);
         let filename = path
             .file_name()
@@ -187,7 +178,8 @@ impl GlowClient {
             anyhow::bail!("Upload failed (HTTP {}): {}", status, text);
         }
 
-        resp.json::<Value>().context("Failed to parse upload response")
+        resp.json::<Value>()
+            .context("Failed to parse upload response")
     }
 
     /// Discover available upload types for a resource media
@@ -235,10 +227,7 @@ impl GlowClient {
         data: Vec<u8>,
         offset: u64,
     ) -> Result<Value> {
-        let url = self.url(&format!(
-            "/{}/{}/{}/chunk",
-            resource, media_type, upload_id
-        ));
+        let url = self.url(&format!("/{}/{}/{}/chunk", resource, media_type, upload_id));
         let resp = self
             .authed_request(reqwest::Method::PATCH, &url)
             .header("Content-Type", "application/offset+octet-stream")
@@ -264,12 +253,7 @@ impl GlowClient {
     }
 
     /// TUS status check
-    pub fn media_status(
-        &self,
-        resource: &str,
-        media_type: &str,
-        upload_id: &str,
-    ) -> Result<Value> {
+    pub fn media_status(&self, resource: &str, media_type: &str, upload_id: &str) -> Result<Value> {
         let url = self.url(&format!(
             "/{}/{}/{}/status",
             resource, media_type, upload_id
@@ -364,16 +348,12 @@ impl GlowClient {
 
         Ok(resp)
     }
-
 }
 
 // ── SSE helper ────────────────────────────────────────────────
 
 /// Read SSE events from a response and call the handler for each data line.
-pub fn read_sse_events(
-    response: blocking::Response,
-    mut handler: impl FnMut(&str),
-) -> Result<()> {
+pub fn read_sse_events(response: blocking::Response, mut handler: impl FnMut(&str)) -> Result<()> {
     let reader = std::io::BufReader::new(response);
     for line in reader.lines() {
         let line = line.context("Error reading SSE stream")?;
@@ -440,11 +420,7 @@ mod tests {
 
         let client = GlowClient::new(&server.url());
         let result = client
-            .resource_action(
-                "scenarios",
-                "get",
-                Some(json!({"scenario_id": "s-1"})),
-            )
+            .resource_action("scenarios", "get", Some(json!({"scenario_id": "s-1"})))
             .unwrap();
         assert_eq!(result["name"], "Test");
         mock.assert();
@@ -694,7 +670,9 @@ mod tests {
             .create();
 
         let client = GlowClient::new(&server.url());
-        let err = client.resource_action("personas", "search", None).unwrap_err();
+        let err = client
+            .resource_action("personas", "search", None)
+            .unwrap_err();
         assert!(err.to_string().contains("Authentication failed"));
     }
 
@@ -707,7 +685,9 @@ mod tests {
             .create();
 
         let client = GlowClient::new(&server.url());
-        let err = client.resource_action("personas", "search", None).unwrap_err();
+        let err = client
+            .resource_action("personas", "search", None)
+            .unwrap_err();
         assert!(err.to_string().contains("Permission denied"));
     }
 
@@ -721,7 +701,9 @@ mod tests {
             .create();
 
         let client = GlowClient::new(&server.url());
-        let err = client.resource_action("personas", "get", Some(json!({"persona_id": "x"}))).unwrap_err();
+        let err = client
+            .resource_action("personas", "get", Some(json!({"persona_id": "x"})))
+            .unwrap_err();
         assert!(err.to_string().contains("not found"));
     }
 
@@ -735,14 +717,18 @@ mod tests {
             .create();
 
         let client = GlowClient::new(&server.url());
-        let err = client.resource_action("personas", "search", None).unwrap_err();
+        let err = client
+            .resource_action("personas", "search", None)
+            .unwrap_err();
         assert!(err.to_string().contains("API error"));
     }
 
     #[test]
     fn test_connection_refused_returns_helpful_error() {
         let client = GlowClient::new("http://127.0.0.1:1");
-        let err = client.resource_action("personas", "search", None).unwrap_err();
+        let err = client
+            .resource_action("personas", "search", None)
+            .unwrap_err();
         assert!(err.to_string().contains("Failed to connect"));
     }
 

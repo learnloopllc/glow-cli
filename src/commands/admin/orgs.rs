@@ -1,6 +1,6 @@
-use anyhow::Result;
 use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
+use anyhow::Result;
 
 pub(crate) fn cmd_org_list(client: &AdminClient, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
@@ -82,7 +82,11 @@ pub(crate) fn cmd_org_update(
 
     let resp = client.org_update(id, name, description, None)?;
     output::print_result(mode, &resp, |r| {
-        println!("{} Updated organization {}", "OK".green().bold(), r.name.bold());
+        println!(
+            "{} Updated organization {}",
+            "OK".green().bold(),
+            r.name.bold()
+        );
     });
     Ok(())
 }
@@ -102,7 +106,11 @@ pub(crate) fn cmd_org_delete(
 
     let resp = client.org_delete(id)?;
     output::print_result(mode, &resp, |_| {
-        println!("{} Deleted organization {}", "OK".green().bold(), id.dimmed());
+        println!(
+            "{} Deleted organization {}",
+            "OK".green().bold(),
+            id.dimmed()
+        );
     });
     Ok(())
 }
@@ -119,7 +127,13 @@ pub(crate) fn cmd_org_members(client: &AdminClient, org_id: &str, mode: OutputMo
                 "admin" => "admin".yellow().to_string(),
                 _ => role_str.dimmed().to_string(),
             };
-            println!("  {} {} <{}> [{}]", m.id.dimmed(), m.name.bold(), m.email, role);
+            println!(
+                "  {} {} <{}> [{}]",
+                m.id.dimmed(),
+                m.name.bold(),
+                m.email,
+                role
+            );
         }
     });
     Ok(())
@@ -149,7 +163,10 @@ pub(crate) fn cmd_org_member_remove(
 ) -> Result<()> {
     use colored::Colorize;
 
-    if !output::confirm(&format!("Remove member {} from organization?", user_id), yes) {
+    if !output::confirm(
+        &format!("Remove member {} from organization?", user_id),
+        yes,
+    ) {
         println!("Aborted.");
         return Ok(());
     }
@@ -174,11 +191,7 @@ pub(crate) fn cmd_org_deployments(
 
     let resp = client.org_deployments(org_id)?;
     output::print_result(mode, &resp, |r| {
-        println!(
-            "{} ({} total)\n",
-            "Deployments".bold(),
-            r.deployments.len()
-        );
+        println!("{} ({} total)\n", "Deployments".bold(), r.deployments.len());
         for d in &r.deployments {
             super::print_deployment(d);
         }

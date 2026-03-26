@@ -23,9 +23,9 @@ fn apply_auth(req: blocking::RequestBuilder, auth: Auth) -> blocking::RequestBui
 
 fn handle_error_status(status: reqwest::StatusCode, text: &str) -> anyhow::Error {
     match status.as_u16() {
-        401 => anyhow::anyhow!(
-            "Authentication failed (HTTP 401). Run 'glow login' to authenticate."
-        ),
+        401 => {
+            anyhow::anyhow!("Authentication failed (HTTP 401). Run 'glow login' to authenticate.")
+        }
         403 => anyhow::anyhow!(
             "Permission denied (HTTP 403). Your account may not have access to this resource."
         ),

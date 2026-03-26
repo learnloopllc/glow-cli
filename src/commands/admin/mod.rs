@@ -5,8 +5,8 @@ pub mod orgs;
 pub mod status;
 pub mod usage;
 
-use colored::Colorize;
 use crate::admin::types::Deployment;
+use colored::Colorize;
 
 pub(crate) fn print_deployment(d: &Deployment) {
     let name = d.name.as_deref().unwrap_or("unnamed");
@@ -23,7 +23,13 @@ pub(crate) fn print_deployment(d: &Deployment) {
         Some(h) => h.dimmed().to_string(),
         None => "".to_string(),
     };
-    println!("  {} {} [{}] {}", d.id.dimmed(), name.bold(), status, health);
+    println!(
+        "  {} {} [{}] {}",
+        d.id.dimmed(),
+        name.bold(),
+        status,
+        health
+    );
     if let Some(domain) = &d.domain {
         println!("    https://{}", domain);
     }

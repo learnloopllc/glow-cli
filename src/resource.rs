@@ -177,7 +177,11 @@ mod tests {
     #[test]
     fn test_about_not_empty() {
         for r in Resource::all() {
-            assert!(!r.about().is_empty(), "Resource {} has empty about", r.slug());
+            assert!(
+                !r.about().is_empty(),
+                "Resource {} has empty about",
+                r.slug()
+            );
         }
     }
 

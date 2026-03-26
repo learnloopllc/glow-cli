@@ -1,6 +1,6 @@
-use anyhow::Result;
 use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
+use anyhow::Result;
 
 pub(crate) fn cmd_usage(client: &AdminClient, license_id: &str, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
