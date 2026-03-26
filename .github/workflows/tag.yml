@@ -1,19 +1,31 @@
-name: Tag
+name: Tag, Build & Release
 
 on:
-  push:
-    branches: [main, v1]
-    paths: ['Cargo.toml']
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
   contents: write
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   tag:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
 
       - name: Read version
         id: version
@@ -22,28 +34,117 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Check if tag exists
-        id: check
+      - name: Create tag (idempotent)
         run: |
-          if git ls-remote --tags origin | grep -q "refs/tags/v${{ steps.version.outputs.version }}$"; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+          TAG="${{ steps.version.outputs.tag }}"
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            echo "Tag $TAG already exists"
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            git tag "$TAG"
+            git push origin "$TAG"
+            echo "Created tag $TAG"
           fi
 
-      - name: Generate GitHub App token
-        if: steps.check.outputs.exists == 'false'
-        id: app-token
-        uses: actions/create-github-app-token@v1
+  build:
+    needs: tag
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary_ext: ""
+          - os: macos-13
+            target: x86_64-apple-darwin
+            binary_ext: ""
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_ext: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_ext: ".exe"
+    steps:
+      - uses: actions/checkout@v4
         with:
-          app-id: ${{ secrets.DEPLOY_APP_ID }}
-          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
-          owner: learnloopllc
+          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
 
-      - name: Create tag
-        if: steps.check.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
         run: |
-          git tag "${{ steps.version.outputs.tag }}"
-          git push https://x-access-token:${GH_TOKEN}@github.com/learnloopllc/glow-cli.git "${{ steps.version.outputs.tag }}"
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../glow-${{ matrix.target }}.tar.gz glow glw
+          cd ../../..
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a ../../../glow-${{ matrix.target }}.zip glow.exe glw.exe
+          cd ../../..
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glow-${{ matrix.target }}
+          path: glow-${{ matrix.target }}.*
+
+  release:
+    name: Create Release
+    needs: [tag, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate cli-spec.json
+        run: |
+          tar xzf artifacts/glow-x86_64-unknown-linux-gnu.tar.gz -C /tmp
+          chmod +x /tmp/glow
+          /tmp/glow --dump-cli-spec > artifacts/cli-spec.json 2>/dev/null || echo '{}' > artifacts/cli-spec.json
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ needs.tag.outputs.tag }}"
+          if gh release view "$TAG" &>/dev/null; then
+            gh release upload "$TAG" artifacts/* --clobber
+            echo "Updated release $TAG"
+          else
+            gh release create "$TAG" artifacts/* \
+              --title "$TAG" \
+              --generate-notes
+            echo "Created release $TAG"
+          fi
+
+      - name: Build and push Docker image
+        run: |
+          VERSION="${{ needs.tag.outputs.version }}"
+          tar xzf artifacts/glow-x86_64-unknown-linux-gnu.tar.gz -C /tmp
+          cp /tmp/glow .
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker build -t ghcr.io/learnloopllc/glow-cli:v${VERSION} .
+          docker push ghcr.io/learnloopllc/glow-cli:v${VERSION}
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          if [ "$MAJOR" -ge 2 ]; then
+            docker tag ghcr.io/learnloopllc/glow-cli:v${VERSION} ghcr.io/learnloopllc/glow-cli:latest
+            docker push ghcr.io/learnloopllc/glow-cli:latest
+          fi
+          rm glow
