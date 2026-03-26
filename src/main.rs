@@ -14,6 +14,7 @@ mod config;
 mod glow;
 mod output;
 mod resource;
+mod schema_cache;
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
@@ -555,7 +556,7 @@ fn main() -> Result<()> {
         Commands::Resource(args) => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             let client = glow::GlowClient::new(&glow_url);
-            dispatch_resource(&client, &args, mode)?
+            dispatch_resource(&client, &args, mode, &glow_url)?
         }
     }
 
@@ -750,7 +751,12 @@ fn dispatch_admin(
 
 /// Dispatch generic resource commands: glow <resource> <action> [--body JSON] [extra args]
 /// Also handles media subcommands: glow <resource> <media_type> <action> [flags]
-fn dispatch_resource(client: &glow::GlowClient, args: &[String], mode: OutputMode) -> Result<()> {
+fn dispatch_resource(
+    client: &glow::GlowClient,
+    args: &[String],
+    mode: OutputMode,
+    instance_url: &str,
+) -> Result<()> {
     if args.is_empty() {
         anyhow::bail!("Expected a resource name. Run 'glow --help' for usage.");
     }
@@ -773,9 +779,69 @@ fn dispatch_resource(client: &glow::GlowClient, args: &[String], mode: OutputMod
     }
 
     let action = &args[1];
+
+    // Intercept --help: show dynamic parameter docs from the instance's OpenAPI spec
+    if args[2..].iter().any(|a| a == "--help" || a == "-h") {
+        return print_resource_help(resource.slug(), action, instance_url);
+    }
+
     let body = build_resource_body(&args[2..])?;
 
     commands::glow::cmd_resource_action(client, resource.slug(), action, body.as_deref(), mode)
+}
+
+/// Print dynamic help for a resource action using the instance's OpenAPI spec.
+fn print_resource_help(resource: &str, action: &str, instance_url: &str) -> Result<()> {
+    use colored::Colorize;
+
+    println!(
+        "{}\n",
+        format!("glow {} {}", resource, action).bold()
+    );
+    println!(
+        "  {} /{}/{}\n",
+        "POST".dimmed(),
+        resource,
+        action
+    );
+
+    match schema_cache::get_spec(instance_url) {
+        Some(spec) => {
+            let fields = schema_cache::lookup_fields(&spec, resource, action);
+            if fields.is_empty() {
+                println!("  No documented parameters. Pass --key value pairs as needed.");
+            } else {
+                println!("{}", "Parameters:".bold());
+                for f in &fields {
+                    let req = if f.required {
+                        " (required)".red().to_string()
+                    } else {
+                        String::new()
+                    };
+                    let flag = format!("--{}", f.name.replace('_', "-"));
+                    print!("  {:<30} <{}>", flag.green(), f.field_type.dimmed());
+                    print!("{}", req);
+                    if let Some(desc) = &f.description {
+                        print!("  {}", desc);
+                    }
+                    println!();
+                }
+            }
+        }
+        None => {
+            println!(
+                "  Could not fetch schema from {}.",
+                instance_url.dimmed()
+            );
+            println!("  Pass --key value pairs as needed. The API will validate parameters.");
+        }
+    }
+
+    println!("\n{}:", "Options".bold());
+    println!("  {:<30} Raw JSON body (can combine with flags)", "--body <json>".green());
+    println!("  {:<30} Output as JSON", "--json".green());
+
+    Ok(())
 }
 
 /// Dispatch per-resource media operations: glow <resource> <media> <action> [flags]
