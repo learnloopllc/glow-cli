@@ -180,7 +180,7 @@ pub struct DeployCredentialsResponse {
     pub client_id: String,
     pub client_secret: String,
     pub auth_secret: String,
-    pub keycloak_url: String,
+    pub auth_url: String,
     pub realm: String,
     pub issuer: String,
 }
