@@ -64,8 +64,7 @@ fn fetch_spec(instance_url: &str) -> Result<Value> {
     if !resp.status().is_success() {
         anyhow::bail!("Schema fetch returned HTTP {}", resp.status());
     }
-    resp.json::<Value>()
-        .context("Failed to parse OpenAPI spec")
+    resp.json::<Value>().context("Failed to parse OpenAPI spec")
 }
 
 /// Get the OpenAPI spec for an instance (cached or fresh)

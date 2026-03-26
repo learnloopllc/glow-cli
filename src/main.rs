@@ -794,16 +794,8 @@ fn dispatch_resource(
 fn print_resource_help(resource: &str, action: &str, instance_url: &str) -> Result<()> {
     use colored::Colorize;
 
-    println!(
-        "{}\n",
-        format!("glow {} {}", resource, action).bold()
-    );
-    println!(
-        "  {} /{}/{}\n",
-        "POST".dimmed(),
-        resource,
-        action
-    );
+    println!("{}\n", format!("glow {} {}", resource, action).bold());
+    println!("  {} /{}/{}\n", "POST".dimmed(), resource, action);
 
     match schema_cache::get_spec(instance_url) {
         Some(spec) => {
@@ -829,16 +821,16 @@ fn print_resource_help(resource: &str, action: &str, instance_url: &str) -> Resu
             }
         }
         None => {
-            println!(
-                "  Could not fetch schema from {}.",
-                instance_url.dimmed()
-            );
+            println!("  Could not fetch schema from {}.", instance_url.dimmed());
             println!("  Pass --key value pairs as needed. The API will validate parameters.");
         }
     }
 
     println!("\n{}:", "Options".bold());
-    println!("  {:<30} Raw JSON body (can combine with flags)", "--body <json>".green());
+    println!(
+        "  {:<30} Raw JSON body (can combine with flags)",
+        "--body <json>".green()
+    );
     println!("  {:<30} Output as JSON", "--json".green());
 
     Ok(())
@@ -964,7 +956,15 @@ fn build_resource_body(args: &[String]) -> Result<Option<String>> {
 
 /// Parse --key value pairs from args, skipping --body and known media flags.
 fn parse_params(args: &[String]) -> Result<Vec<(String, String)>> {
-    let skip = ["--body", "--file", "--id", "--output", "--filename", "--size", "--offset"];
+    let skip = [
+        "--body",
+        "--file",
+        "--id",
+        "--output",
+        "--filename",
+        "--size",
+        "--offset",
+    ];
     let mut pairs = Vec::new();
     let mut i = 0;
     while i < args.len() {
