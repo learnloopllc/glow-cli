@@ -180,27 +180,7 @@ impl AdminClient {
 
     // ── Deploy ───────────────────────────────────────────────
 
-    pub fn deploy(
-        &self,
-        organization_id: &str,
-        deployment_name: &str,
-        subdomain: &str,
-        version: &str,
-        base_domain: Option<&str>,
-        component_type: Option<&str>,
-    ) -> Result<types::DeployResponse> {
-        let mut body = json!({
-            "organization_id": organization_id,
-            "deployment_name": deployment_name,
-            "subdomain": subdomain,
-            "version": version,
-        });
-        if let Some(bd) = base_domain {
-            body["base_domain"] = json!(bd);
-        }
-        if let Some(ct) = component_type {
-            body["component_type"] = json!(ct);
-        }
+    pub fn deploy_raw(&self, body: serde_json::Value) -> Result<types::DeployResponse> {
         api_request(
             &self.http,
             reqwest::Method::POST,
@@ -417,7 +397,12 @@ mod tests {
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client
-            .deploy("org-1", "my-glow", "my", "v1.0.0", None, None)
+            .deploy_raw(serde_json::json!({
+                "organization_id": "org-1",
+                "deployment_name": "my-glow",
+                "subdomain": "my",
+                "version": "v1.0.0"
+            }))
             .unwrap();
         assert_eq!(resp.deployment.name, Some("my-glow".into()));
         assert_eq!(resp.deployment.status, Some("pending".into()));

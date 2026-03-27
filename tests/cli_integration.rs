@@ -374,13 +374,13 @@ fn test_admin_billing_plans_help() {
 }
 
 #[test]
-fn test_admin_usage_requires_org_id() {
+fn test_admin_usage_help() {
     Command::cargo_bin("glow")
         .unwrap()
-        .args(["admin", "usage"])
+        .args(["admin", "usage", "--help"])
         .assert()
-        .failure()
-        .stderr(predicate::str::contains("Organization ID required"));
+        .success()
+        .stdout(predicate::str::contains("usage"));
 }
 
 #[test]

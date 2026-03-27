@@ -131,6 +131,7 @@ enum Commands {
 // ── Admin subcommands (LearnLoop management plane) ───────────
 
 #[derive(Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum AdminCommands {
     /// Authenticate with LearnLoop API (OAuth)
     Login,
@@ -267,6 +268,7 @@ enum BillingCommands {
 }
 
 #[derive(Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum DeployCommands {
     /// Create a new Glow deployment
     #[command(alias = "new")]
@@ -286,9 +288,30 @@ enum DeployCommands {
         /// Base domain (default: learn-loop.org)
         #[arg(long)]
         base_domain: Option<String>,
-        /// Component type (api or client)
+        /// Component type: api or client (default: api)
         #[arg(long)]
         component_type: Option<String>,
+        /// Parent deployment ID (required for client deployments)
+        #[arg(long)]
+        parent: Option<String>,
+        /// Origin URL (e.g. https://acme.learn-loop.org)
+        #[arg(long)]
+        origin: Option<String>,
+        /// CORS client origins (comma-separated)
+        #[arg(long)]
+        client_origins: Option<String>,
+        /// App path prefix
+        #[arg(long)]
+        app_prefix: Option<String>,
+        /// Database backup filename to restore from
+        #[arg(long)]
+        db_backup: Option<String>,
+        /// Hosting type: hosted or self_hosted (default: hosted)
+        #[arg(long)]
+        hosting_type: Option<String>,
+        /// Deploy in airgapped mode (no external network)
+        #[arg(long)]
+        airgapped: bool,
     },
     /// Stop a running deployment
     Stop {
@@ -731,16 +754,51 @@ fn dispatch_admin(
                     version,
                     base_domain,
                     component_type,
-                } => admin_cmd::deploy::cmd_deploy_create(
-                    &ll,
-                    &require_org_id(org_id, &cfg)?,
-                    &name,
-                    &subdomain,
-                    &version,
-                    base_domain.as_deref(),
-                    component_type.as_deref(),
-                    mode,
-                )?,
+                    parent,
+                    origin,
+                    client_origins,
+                    app_prefix,
+                    db_backup,
+                    hosting_type,
+                    airgapped,
+                } => {
+                    let mut body = serde_json::json!({
+                        "organization_id": require_org_id(org_id, &cfg)?,
+                        "deployment_name": name,
+                        "subdomain": subdomain,
+                        "version": version,
+                    });
+                    let obj = body.as_object_mut().unwrap();
+                    if let Some(v) = base_domain {
+                        obj.insert("base_domain".into(), v.into());
+                    }
+                    if let Some(v) = component_type {
+                        obj.insert("component_type".into(), v.into());
+                    }
+                    if let Some(v) = parent {
+                        obj.insert("parent_deployment_id".into(), v.into());
+                    }
+                    if let Some(v) = origin {
+                        obj.insert("origin".into(), v.into());
+                    }
+                    if let Some(v) = client_origins {
+                        let origins: Vec<&str> = v.split(',').map(|s| s.trim()).collect();
+                        obj.insert("client_origins".into(), serde_json::json!(origins));
+                    }
+                    if let Some(v) = app_prefix {
+                        obj.insert("app_prefix".into(), v.into());
+                    }
+                    if let Some(v) = db_backup {
+                        obj.insert("db_backup".into(), v.into());
+                    }
+                    if let Some(v) = hosting_type {
+                        obj.insert("hosting_type".into(), v.into());
+                    }
+                    if airgapped {
+                        obj.insert("airgapped".into(), true.into());
+                    }
+                    admin_cmd::deploy::cmd_deploy_create_raw(&ll, body, mode)?
+                }
                 DeployCommands::Stop { id } => {
                     admin_cmd::deploy::cmd_deploy_stop(&ll, &id, yes, mode)?
                 }

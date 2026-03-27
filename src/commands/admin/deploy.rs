@@ -2,27 +2,14 @@ use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 use anyhow::Result;
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn cmd_deploy_create(
+pub(crate) fn cmd_deploy_create_raw(
     client: &AdminClient,
-    org_id: &str,
-    name: &str,
-    subdomain: &str,
-    version: &str,
-    base_domain: Option<&str>,
-    component_type: Option<&str>,
+    body: serde_json::Value,
     mode: OutputMode,
 ) -> Result<()> {
     use colored::Colorize;
 
-    let resp = client.deploy(
-        org_id,
-        name,
-        subdomain,
-        version,
-        base_domain,
-        component_type,
-    )?;
+    let resp = client.deploy_raw(body)?;
     output::print_result(mode, &resp, |r| {
         println!(
             "{} Deployment created: {}",
