@@ -22,6 +22,7 @@ pub struct Config {
     pub api_url: Option<String>,
     pub glow_url: Option<String>,
     pub client_id: Option<String>,
+    pub org_id: Option<String>,
     pub active_instance: Option<String>,
     #[serde(default)]
     pub instances: HashMap<String, Instance>,

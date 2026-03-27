@@ -3,7 +3,12 @@ use crate::auth;
 use crate::output::{self, OutputMode};
 use anyhow::Result;
 
-pub(crate) fn cmd_login(server_url: &str, client_id: &str, mode: OutputMode) -> Result<()> {
+/// Simple login (for Glow instances — no config changes)
+pub(crate) fn cmd_instance_login(
+    server_url: &str,
+    client_id: &str,
+    mode: OutputMode,
+) -> Result<()> {
     use colored::Colorize;
     use serde::Serialize;
 
@@ -11,17 +16,15 @@ pub(crate) fn cmd_login(server_url: &str, client_id: &str, mode: OutputMode) -> 
     struct LoginResult {
         server: String,
         status: String,
-        token_type: String,
     }
 
-    let token = auth::login(server_url, client_id)?;
+    let _token = auth::login(server_url, client_id)?;
 
     output::print_result(
         mode,
         &LoginResult {
             server: server_url.to_string(),
             status: "authenticated".into(),
-            token_type: token.token_type.clone(),
         },
         |_| {
             println!(
@@ -29,6 +32,63 @@ pub(crate) fn cmd_login(server_url: &str, client_id: &str, mode: OutputMode) -> 
                 "OK".green().bold(),
                 server_url.dimmed()
             );
+        },
+    );
+    Ok(())
+}
+
+/// Admin login — saves API URL and default org to config
+pub(crate) fn cmd_login(
+    server_url: &str,
+    client_id: &str,
+    cfg: &mut crate::config::Config,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct LoginResult {
+        server: String,
+        status: String,
+        org_id: Option<String>,
+    }
+
+    let _token = auth::login(server_url, client_id)?;
+
+    // Save API URL to config
+    cfg.api_url = Some(server_url.to_string());
+
+    // Fetch user info to get default org
+    let client = crate::admin::AdminClient::new(server_url);
+    let org_id = match client.whoami() {
+        Ok(me) => {
+            if let Some(ref oid) = me.org_id {
+                cfg.org_id = Some(oid.clone());
+            }
+            me.org_id
+        }
+        Err(_) => None,
+    };
+
+    cfg.save()?;
+
+    output::print_result(
+        mode,
+        &LoginResult {
+            server: server_url.to_string(),
+            status: "authenticated".into(),
+            org_id: org_id.clone(),
+        },
+        |_| {
+            println!(
+                "{} Logged in to {}",
+                "OK".green().bold(),
+                server_url.dimmed()
+            );
+            if let Some(ref oid) = org_id {
+                println!("  Default org: {}", oid.dimmed());
+            }
         },
     );
     Ok(())

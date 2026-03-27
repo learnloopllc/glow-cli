@@ -160,8 +160,8 @@ enum AdminCommands {
 
     /// View usage summary for an organization
     Usage {
-        /// Organization ID to view usage for
-        org_id: String,
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
     },
 
     /// Deploy a new Glow instance
@@ -248,21 +248,21 @@ enum BillingCommands {
     Plans,
     /// Check billing status for an organization
     Status {
-        /// Organization ID
-        org_id: String,
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
     },
     /// Start checkout for a plan
     Checkout {
-        /// Organization ID
-        org_id: String,
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
         /// Plan ID (e.g. "pro")
         #[arg(long, default_value = "pro")]
         plan: String,
     },
     /// Open the billing portal
     Portal {
-        /// Organization ID
-        org_id: String,
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
     },
 }
 
@@ -271,9 +271,9 @@ enum DeployCommands {
     /// Create a new Glow deployment
     #[command(alias = "new")]
     Create {
-        /// Organization ID
+        /// Organization ID (defaults to your primary org)
         #[arg(long)]
-        org_id: String,
+        org_id: Option<String>,
         /// Deployment name
         #[arg(long)]
         name: String,
@@ -389,6 +389,15 @@ fn dump_command_spec(cmd: &clap::Command) -> serde_json::Value {
 
 // ── Helpers ──────────────────────────────────────────────────
 
+/// Resolve org_id: explicit arg > config > error
+fn require_org_id(explicit: Option<String>, cfg: &config::Config) -> Result<String> {
+    explicit.or_else(|| cfg.org_id.clone()).ok_or_else(|| {
+        anyhow::anyhow!(
+            "Organization ID required. Pass it as an argument, or run 'glow admin login' to set a default."
+        )
+    })
+}
+
 /// Resolve glow instance URL: --instance-url > active instance > glow_url config > default
 fn resolve_glow_url(cli_url: Option<&str>, cfg: &config::Config) -> String {
     cli_url
@@ -479,7 +488,7 @@ fn main() -> Result<()> {
         // ── Top-level Glow instance commands ─────────────────
         Commands::Login => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            admin_cmd::auth::cmd_login(&glow_url, &client_id, mode)?
+            admin_cmd::auth::cmd_instance_login(&glow_url, &client_id, mode)?
         }
         Commands::Logout => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
@@ -537,7 +546,9 @@ fn main() -> Result<()> {
         }
 
         // ── Admin commands (LearnLoop management plane) ──────
-        Commands::Admin { action } => dispatch_admin(action, &api_url, &client_id, cli.yes, mode)?,
+        Commands::Admin { action } => {
+            dispatch_admin(action, &api_url, &client_id, cli.yes, mode, cfg)?
+        }
 
         // ── Instance management ──────────────────────────────
         Commands::Instances { action } => dispatch_instances(action, cfg, mode)?,
@@ -654,11 +665,12 @@ fn dispatch_admin(
     client_id: &str,
     yes: bool,
     mode: OutputMode,
+    mut cfg: config::Config,
 ) -> Result<()> {
     use commands::admin as admin_cmd;
 
     match action {
-        AdminCommands::Login => admin_cmd::auth::cmd_login(api_url, client_id, mode)?,
+        AdminCommands::Login => admin_cmd::auth::cmd_login(api_url, client_id, &mut cfg, mode)?,
         AdminCommands::Logout => admin_cmd::auth::cmd_logout(api_url, mode)?,
         AdminCommands::Sessions => admin_cmd::auth::cmd_sessions(mode)?,
         AdminCommands::Whoami => {
@@ -705,7 +717,8 @@ fn dispatch_admin(
 
         AdminCommands::Usage { org_id } => {
             let ll = admin::AdminClient::new(api_url);
-            admin_cmd::usage::cmd_usage(&ll, &org_id, mode)?
+            let oid = require_org_id(org_id, &cfg)?;
+            admin_cmd::usage::cmd_usage(&ll, &oid, mode)?
         }
 
         AdminCommands::Deploy { action } => {
@@ -720,7 +733,7 @@ fn dispatch_admin(
                     component_type,
                 } => admin_cmd::deploy::cmd_deploy_create(
                     &ll,
-                    &org_id,
+                    &require_org_id(org_id, &cfg)?,
                     &name,
                     &subdomain,
                     &version,
@@ -745,13 +758,16 @@ fn dispatch_admin(
             match action {
                 BillingCommands::Plans => admin_cmd::billing::cmd_billing_plans(&ll, mode)?,
                 BillingCommands::Status { org_id } => {
-                    admin_cmd::billing::cmd_billing_status(&ll, &org_id, mode)?
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::billing::cmd_billing_status(&ll, &oid, mode)?
                 }
                 BillingCommands::Checkout { org_id, plan } => {
-                    admin_cmd::billing::cmd_billing_checkout(&ll, &org_id, &plan, mode)?
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::billing::cmd_billing_checkout(&ll, &oid, &plan, mode)?
                 }
                 BillingCommands::Portal { org_id } => {
-                    admin_cmd::billing::cmd_billing_portal(&ll, &org_id, mode)?
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::billing::cmd_billing_portal(&ll, &oid, mode)?
                 }
             }
         }

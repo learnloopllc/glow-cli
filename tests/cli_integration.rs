@@ -380,7 +380,7 @@ fn test_admin_usage_requires_org_id() {
         .args(["admin", "usage"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("ORG_ID"));
+        .stderr(predicate::str::contains("Organization ID required"));
 }
 
 #[test]
