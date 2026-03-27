@@ -360,19 +360,26 @@ fn exchange_code(
     code: &str,
     redirect_uri: &str,
     client_id: &str,
+    client_secret: Option<&str>,
 ) -> Result<TokenResponse> {
     let http = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .build()?;
 
+    let mut params = vec![
+        ("grant_type", "authorization_code"),
+        ("code", code),
+        ("redirect_uri", redirect_uri),
+        ("client_id", client_id),
+    ];
+    // Glow instances require client_secret; LearnLoop API does not
+    if let Some(secret) = client_secret {
+        params.push(("client_secret", secret));
+    }
+
     let resp = http
         .post(token_endpoint)
-        .form(&[
-            ("grant_type", "authorization_code"),
-            ("code", code),
-            ("redirect_uri", redirect_uri),
-            ("client_id", client_id),
-        ])
+        .form(&params)
         .send()
         .with_context(|| format!("Failed to connect to token endpoint: {}", token_endpoint))?;
 
@@ -391,6 +398,15 @@ fn exchange_code(
 /// Run the full OAuth login flow for a given server.
 /// Works for both the LearnLoop API and any Glow instance.
 pub fn login(server_url: &str, client_id: &str) -> Result<StoredToken> {
+    login_with_secret(server_url, client_id, None)
+}
+
+/// Run the full OAuth login flow, optionally with a client secret.
+pub fn login_with_secret(
+    server_url: &str,
+    client_id: &str,
+    client_secret: Option<&str>,
+) -> Result<StoredToken> {
     // 1. Discover OIDC endpoints
     let discovery = discover(server_url)?;
 
@@ -422,7 +438,13 @@ pub fn login(server_url: &str, client_id: &str) -> Result<StoredToken> {
     let code = wait_for_callback(&listener, &state)?;
 
     // 6. Exchange code for tokens
-    let token_resp = exchange_code(&discovery.token_endpoint, &code, &redirect_uri, client_id)?;
+    let token_resp = exchange_code(
+        &discovery.token_endpoint,
+        &code,
+        &redirect_uri,
+        client_id,
+        client_secret,
+    )?;
 
     // 7. Store token keyed by server URL
     let stored = StoredToken {
@@ -752,6 +774,7 @@ mod tests {
             "auth-code",
             "http://127.0.0.1:9999/callback",
             "api-client",
+            None,
         )
         .unwrap();
 
@@ -776,6 +799,7 @@ mod tests {
             "bad-code",
             "http://127.0.0.1:9999/callback",
             "api-client",
+            None,
         )
         .unwrap_err();
 

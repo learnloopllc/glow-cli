@@ -3,10 +3,12 @@ use crate::auth;
 use crate::output::{self, OutputMode};
 use anyhow::Result;
 
-/// Simple login (for Glow instances — no config changes)
+/// Login to a Glow instance.
+/// Fetches OAuth credentials from LearnLoop API by matching the instance URL
+/// to a deployment, then runs the OIDC flow with the correct client_id/secret.
 pub(crate) fn cmd_instance_login(
     server_url: &str,
-    client_id: &str,
+    admin_api_url: &str,
     mode: OutputMode,
 ) -> Result<()> {
     use colored::Colorize;
@@ -18,7 +20,16 @@ pub(crate) fn cmd_instance_login(
         status: String,
     }
 
-    let _token = auth::login(server_url, client_id)?;
+    // Try to fetch credentials from LearnLoop by finding the matching deployment
+    let (cid, secret) = match resolve_instance_credentials(server_url, admin_api_url) {
+        Ok((c, s)) => (c, Some(s)),
+        Err(_) => {
+            eprintln!("Could not fetch credentials from LearnLoop. Using default client_id.");
+            ("api-client".to_string(), None)
+        }
+    };
+
+    let _token = auth::login_with_secret(server_url, &cid, secret.as_deref())?;
 
     output::print_result(
         mode,
@@ -35,6 +46,40 @@ pub(crate) fn cmd_instance_login(
         },
     );
     Ok(())
+}
+
+/// Find the deployment matching an instance URL and fetch its OAuth credentials.
+fn resolve_instance_credentials(
+    instance_url: &str,
+    admin_api_url: &str,
+) -> Result<(String, String)> {
+    let ll = AdminClient::new(admin_api_url);
+
+    // List deployments and find one whose domain matches the instance URL
+    let deploys = ll.deploy_list(true)?;
+    let normalized = instance_url
+        .trim_end_matches('/')
+        .replace("https://", "")
+        .replace("http://", "");
+
+    let deployment = deploys
+        .deployments
+        .iter()
+        .find(|d| {
+            d.domain
+                .as_deref()
+                .map(|dom| dom == normalized)
+                .unwrap_or(false)
+        })
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "No deployment found matching {}. Are you logged into the LearnLoop API?",
+                instance_url
+            )
+        })?;
+
+    let creds = ll.deploy_credentials(&deployment.id)?;
+    Ok((creds.client_id, creds.client_secret))
 }
 
 /// Admin login — saves API URL and default org to config

@@ -190,6 +190,19 @@ impl AdminClient {
         )
     }
 
+    pub fn deploy_credentials(
+        &self,
+        deployment_id: &str,
+    ) -> Result<types::DeployCredentialsResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/deploy/{}/credentials", deployment_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
     pub fn deploy_status(&self, deployment_id: &str) -> Result<types::DeployStatusResponse> {
         api_request(
             &self.http,

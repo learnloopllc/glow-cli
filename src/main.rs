@@ -556,7 +556,7 @@ fn main() -> Result<()> {
         // ── Top-level Glow instance commands ─────────────────
         Commands::Login => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            admin_cmd::auth::cmd_instance_login(&glow_url, &client_id, mode)?
+            admin_cmd::auth::cmd_instance_login(&glow_url, &api_url, mode)?
         }
         Commands::Logout => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
