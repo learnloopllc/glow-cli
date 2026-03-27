@@ -40,6 +40,8 @@ struct TokenResponse {
     token_type: String,
     #[serde(default)]
     expires_in: Option<u64>,
+    #[serde(default)]
+    refresh_token: Option<String>,
 }
 
 /// A single server's stored credentials
@@ -50,6 +52,10 @@ pub struct StoredToken {
     pub token_type: String,
     pub expires_in: Option<u64>,
     pub issued_at: u64,
+    #[serde(default)]
+    pub refresh_token: Option<String>,
+    #[serde(default)]
+    pub token_endpoint: Option<String>,
 }
 
 /// All tokens, keyed by server URL
@@ -81,17 +87,74 @@ pub fn load_token_store() -> Result<TokenStore> {
         .with_context(|| format!("Failed to parse token file: {}", path.display()))
 }
 
-/// Get a token for a specific server URL
-#[allow(dead_code)] // will be used when API calls require auth
+/// Get a token for a specific server URL, auto-refreshing if expired.
 pub fn get_token(server_url: &str) -> Result<StoredToken> {
     let store = load_token_store()?;
     let normalized = normalize_url(server_url);
-    store.tokens.get(&normalized).cloned().ok_or_else(|| {
+    let token = store.tokens.get(&normalized).cloned().ok_or_else(|| {
         anyhow::anyhow!(
             "Not logged in to {}. Run 'glow login' to authenticate.",
             server_url
         )
-    })
+    })?;
+
+    // Check if token is expired (with 60s buffer)
+    if let Some(expires_in) = token.expires_in {
+        let age = now_epoch().saturating_sub(token.issued_at);
+        if age + 60 >= expires_in {
+            // Try to refresh
+            if let (Some(ref rt), Some(ref endpoint)) =
+                (&token.refresh_token, &token.token_endpoint)
+            {
+                if let Ok(refreshed) = refresh_access_token(endpoint, rt, server_url) {
+                    return Ok(refreshed);
+                }
+            }
+        }
+    }
+
+    Ok(token)
+}
+
+/// Exchange a refresh token for a new access token
+fn refresh_access_token(
+    token_endpoint: &str,
+    refresh_token: &str,
+    server_url: &str,
+) -> Result<StoredToken> {
+    let http = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()?;
+
+    let resp = http
+        .post(token_endpoint)
+        .form(&[
+            ("grant_type", "refresh_token"),
+            ("refresh_token", refresh_token),
+        ])
+        .send()
+        .context("Failed to refresh token")?;
+
+    if !resp.status().is_success() {
+        anyhow::bail!("Token refresh failed (HTTP {})", resp.status());
+    }
+
+    let token_resp: TokenResponse = resp.json().context("Failed to parse refresh response")?;
+
+    let stored = StoredToken {
+        access_token: token_resp.access_token,
+        id_token: token_resp.id_token,
+        token_type: token_resp.token_type,
+        expires_in: token_resp.expires_in,
+        issued_at: now_epoch(),
+        refresh_token: token_resp
+            .refresh_token
+            .or_else(|| Some(refresh_token.to_string())),
+        token_endpoint: Some(token_endpoint.to_string()),
+    };
+    save_token(server_url, stored.clone())?;
+
+    Ok(stored)
 }
 
 /// Save a token for a specific server URL
@@ -368,6 +431,8 @@ pub fn login(server_url: &str, client_id: &str) -> Result<StoredToken> {
         token_type: token_resp.token_type,
         expires_in: token_resp.expires_in,
         issued_at: now_epoch(),
+        refresh_token: token_resp.refresh_token,
+        token_endpoint: Some(discovery.token_endpoint.clone()),
     };
     save_token(server_url, stored.clone())?;
 
@@ -473,6 +538,8 @@ mod tests {
                 token_type: "Bearer".into(),
                 expires_in: Some(3600),
                 issued_at: 1000,
+                refresh_token: None,
+                token_endpoint: None,
             },
         );
         store.tokens.insert(
@@ -483,6 +550,8 @@ mod tests {
                 token_type: "Bearer".into(),
                 expires_in: Some(3600),
                 issued_at: 2000,
+                refresh_token: None,
+                token_endpoint: None,
             },
         );
 
@@ -519,6 +588,8 @@ mod tests {
                 token_type: "Bearer".into(),
                 expires_in: None,
                 issued_at: 1000,
+                refresh_token: None,
+                token_endpoint: None,
             },
         );
         store.tokens.insert(
@@ -529,6 +600,8 @@ mod tests {
                 token_type: "Bearer".into(),
                 expires_in: None,
                 issued_at: 2000,
+                refresh_token: None,
+                token_endpoint: None,
             },
         );
         assert_eq!(store.tokens["http://localhost:8000"].access_token, "new");
