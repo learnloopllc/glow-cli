@@ -313,6 +313,51 @@ enum DeployCommands {
         #[arg(long)]
         airgapped: bool,
     },
+    /// Check deployment status and workflow progress
+    Status {
+        /// Deployment ID
+        id: String,
+    },
+    /// View container logs
+    Logs {
+        /// Deployment ID
+        id: String,
+        /// Service name (e.g. api, database, redis)
+        #[arg(long, default_value = "api")]
+        service: String,
+        /// Number of log lines
+        #[arg(long, default_value = "100")]
+        lines: u32,
+    },
+    /// Check container health
+    Health {
+        /// Deployment ID
+        id: String,
+    },
+    /// View CPU/memory metrics
+    Metrics {
+        /// Deployment ID
+        id: String,
+    },
+    /// View deployment event history
+    Events {
+        /// Deployment ID
+        id: String,
+    },
+    /// Trigger a redeploy
+    Redeploy {
+        /// Deployment ID
+        id: String,
+    },
+    /// Update deployment version
+    #[command(alias = "upgrade")]
+    Version {
+        /// Deployment ID
+        id: String,
+        /// New version (semver, e.g. v2.1.0)
+        #[arg(long)]
+        set: String,
+    },
     /// Stop a running deployment
     Stop {
         /// Deployment ID
@@ -798,6 +843,27 @@ fn dispatch_admin(
                         obj.insert("airgapped".into(), true.into());
                     }
                     admin_cmd::deploy::cmd_deploy_create_raw(&ll, body, mode)?
+                }
+                DeployCommands::Status { id } => {
+                    admin_cmd::deploy::cmd_deploy_status(&ll, &id, mode)?
+                }
+                DeployCommands::Logs { id, service, lines } => {
+                    admin_cmd::deploy::cmd_deploy_logs(&ll, &id, &service, lines, mode)?
+                }
+                DeployCommands::Health { id } => {
+                    admin_cmd::deploy::cmd_deploy_health(&ll, &id, mode)?
+                }
+                DeployCommands::Metrics { id } => {
+                    admin_cmd::deploy::cmd_deploy_metrics(&ll, &id, mode)?
+                }
+                DeployCommands::Events { id } => {
+                    admin_cmd::deploy::cmd_deploy_events(&ll, &id, mode)?
+                }
+                DeployCommands::Redeploy { id } => {
+                    admin_cmd::deploy::cmd_deploy_redeploy(&ll, &id, yes, mode)?
+                }
+                DeployCommands::Version { id, set } => {
+                    admin_cmd::deploy::cmd_deploy_version(&ll, &id, &set, yes, mode)?
                 }
                 DeployCommands::Stop { id } => {
                     admin_cmd::deploy::cmd_deploy_stop(&ll, &id, yes, mode)?

@@ -190,6 +190,91 @@ impl AdminClient {
         )
     }
 
+    pub fn deploy_status(&self, deployment_id: &str) -> Result<types::DeployStatusResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/deploy/{}/status", deployment_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn deploy_logs(
+        &self,
+        deployment_id: &str,
+        service: &str,
+        lines: u32,
+    ) -> Result<types::DeployLogsResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!(
+                "/deploy/{}/logs?service={}&lines={}",
+                deployment_id, service, lines
+            )),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn deploy_health(&self, deployment_id: &str) -> Result<types::DeployHealthResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/deploy/{}/health", deployment_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn deploy_metrics(&self, deployment_id: &str) -> Result<types::DeployMetricsResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/deploy/{}/metrics", deployment_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn deploy_events(
+        &self,
+        deployment_id: &str,
+    ) -> Result<types::DeploymentEventsListResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/deploy/{}/events", deployment_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn deploy_redeploy(&self, deployment_id: &str) -> Result<types::Deployment> {
+        api_request(
+            &self.http,
+            reqwest::Method::POST,
+            &self.url(&format!("/deploy/{}/redeploy", deployment_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn deploy_version(
+        &self,
+        deployment_id: &str,
+        version: &str,
+    ) -> Result<types::DeployVersionUpdateResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::PUT,
+            &self.url(&format!("/deploy/{}/version", deployment_id)),
+            Some(json!({ "version": version })),
+            self.bearer_auth(),
+        )
+    }
+
     pub fn deploy_stop(&self, deployment_id: &str) -> Result<types::Deployment> {
         api_request(
             &self.http,
