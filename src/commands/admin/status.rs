@@ -18,7 +18,10 @@ pub(crate) fn cmd_network(api_url: &str, mode: OutputMode) -> Result<()> {
 
     let api_status = match http.get(format!("{}/health", api_url)).send() {
         Ok(resp) if resp.status().is_success() => "connected",
-        _ => "unreachable",
+        _ => match http.get(api_url).send() {
+            Ok(resp) if resp.status().is_success() => "connected",
+            _ => "unreachable",
+        },
     };
 
     output::print_result(
@@ -65,7 +68,10 @@ pub(crate) fn cmd_status(api_url: &str, mode: OutputMode) -> Result<()> {
 
     let api_status = match http.get(format!("{}/health", api_url)).send() {
         Ok(r) if r.status().is_success() => "connected",
-        _ => "unreachable",
+        _ => match http.get(api_url).send() {
+            Ok(r) if r.status().is_success() => "connected",
+            _ => "unreachable",
+        },
     };
 
     let report = StatusReport {
