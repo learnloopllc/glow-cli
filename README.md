@@ -7,7 +7,7 @@ CLI for the Glow platform. Talks to both the central LearnLoop API and individua
 ### Homebrew (macOS / Linux)
 
 ```bash
-brew install learnloopllc/glow-cli/glw
+brew install learnloopllc/glow-cli/glow
 ```
 
 ### Shell script

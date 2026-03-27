@@ -1,4 +1,4 @@
-class Glw < Formula
+class Glow < Formula
   desc "CLI for the Glow platform — manage instances, deployments, and resources"
   homepage "https://github.com/learnloopllc/glow-cli"
   version "2.1.0"
