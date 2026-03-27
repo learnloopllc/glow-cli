@@ -1,22 +1,22 @@
 class Glow < Formula
   desc "CLI for the Glow platform — manage instances, deployments, and resources"
   homepage "https://github.com/learnloopllc/glow-cli"
-  version "2.3.0"
+  version "2.4.0"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/learnloopllc/glow-cli/releases/download/v2.3.0/glow-aarch64-apple-darwin.tar.gz"
-      sha256 "50f93cef9a2403dbeff6dc70c56bb92955d0e79b5b30ce31deb9be2b485e9e60"
+      url "https://github.com/learnloopllc/glow-cli/releases/download/v2.4.0/glow-aarch64-apple-darwin.tar.gz"
+      sha256 "571cd194d8f40e61bcdb997eb1ebdb24b6ed9af61bdb3f83a0ea54916846d07b"
     else
-      url "https://github.com/learnloopllc/glow-cli/releases/download/v2.3.0/glow-x86_64-apple-darwin.tar.gz"
-      sha256 "fbc13a62cb5e9b401b1ed53878d1a03d54d32a904d6afabdb8bcc5d646e1e054"
+      url "https://github.com/learnloopllc/glow-cli/releases/download/v2.4.0/glow-x86_64-apple-darwin.tar.gz"
+      sha256 "9527b60a25a655dbd233c769e18e9c42a7836124ff1c5b8acc53d07019bbceeb"
     end
   end
 
   on_linux do
-    url "https://github.com/learnloopllc/glow-cli/releases/download/v2.3.0/glow-x86_64-unknown-linux-gnu.tar.gz"
-    sha256 "1497ca19e84433ab2d206f27aa740c383c47650d82bbb1d7f75fda2ea776bd45"
+    url "https://github.com/learnloopllc/glow-cli/releases/download/v2.4.0/glow-x86_64-unknown-linux-gnu.tar.gz"
+    sha256 "b4379950e01849d8305130802c4d714c076e11ec7255922addac92cfb054548b"
   end
 
   def install
