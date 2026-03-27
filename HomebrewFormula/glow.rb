@@ -7,16 +7,16 @@ class Glow < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/learnloopllc/glow-cli/releases/download/v2.4.0/glow-aarch64-apple-darwin.tar.gz"
-      sha256 "571cd194d8f40e61bcdb997eb1ebdb24b6ed9af61bdb3f83a0ea54916846d07b"
+      sha256 "5a4ad06dfff5cbcc5f7ec84af27d0fac9bfdd1f2be2fec6fd7f7fa88fc9dda59"
     else
       url "https://github.com/learnloopllc/glow-cli/releases/download/v2.4.0/glow-x86_64-apple-darwin.tar.gz"
-      sha256 "9527b60a25a655dbd233c769e18e9c42a7836124ff1c5b8acc53d07019bbceeb"
+      sha256 "b3ac1f7d0589f6b80a66afe04d3d92ebc687d7fbbfac6675bcbe7d43dd18bda8"
     end
   end
 
   on_linux do
     url "https://github.com/learnloopllc/glow-cli/releases/download/v2.4.0/glow-x86_64-unknown-linux-gnu.tar.gz"
-    sha256 "b4379950e01849d8305130802c4d714c076e11ec7255922addac92cfb054548b"
+    sha256 "790c32fc5ecf03c0c636a53697b1c191567c49cce24463e91f65e3c0d9d46f29"
   end
 
   def install
