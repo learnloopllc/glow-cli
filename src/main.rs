@@ -21,7 +21,7 @@ use clap::{CommandFactory, Parser, Subcommand};
 use output::OutputMode;
 
 #[derive(Parser)]
-#[command(name = "glow", about = "Glow CLI — manage your platform")]
+#[command(name = "glow", about = "Glow CLI — manage your platform", version)]
 struct Cli {
     /// LearnLoop API URL (central platform)
     #[arg(long, env = "GLOW_API_URL")]
@@ -115,6 +115,12 @@ enum Commands {
     Admin {
         #[command(subcommand)]
         action: AdminCommands,
+    },
+
+    /// Generate shell completions
+    Completions {
+        /// Shell to generate completions for
+        shell: clap_complete::Shell,
     },
 
     /// Interact with a resource on the Glow instance (e.g. glow personas search)
@@ -523,6 +529,11 @@ fn main() -> Result<()> {
                 cursor.as_deref(),
                 mode,
             )?
+        }
+
+        // ── Shell completions ────────────────────────────────
+        Commands::Completions { shell } => {
+            clap_complete::generate(shell, &mut Cli::command(), "glow", &mut std::io::stdout());
         }
 
         // ── Admin commands (LearnLoop management plane) ──────

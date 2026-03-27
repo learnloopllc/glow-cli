@@ -1,14 +1,41 @@
 # Glow CLI
 
-Rust-based CLI for the Glow platform. Talks to both the central LearnLoop API and individual Glow instances.
+CLI for the Glow platform. Talks to both the central LearnLoop API and individual Glow instances.
 
 ## Install
 
+### Homebrew (macOS / Linux)
+
 ```bash
-cargo build --release
+brew install learnloopllc/glow-cli/glw
 ```
 
-Produces two binaries: `glow` (full) and `glw` (alias).
+### Shell script
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/learnloopllc/glow-cli/main/install.sh | sh
+```
+
+### From source
+
+```bash
+cargo install --git https://github.com/learnloopllc/glow-cli.git
+```
+
+Installs two binaries: `glow` (full name) and `glw` (short alias).
+
+## Shell completions
+
+```bash
+# Bash
+echo 'source <(glow completions bash)' >> ~/.bashrc
+
+# Zsh
+echo 'source <(glow completions zsh)' >> ~/.zshrc
+
+# Fish
+glow completions fish > ~/.config/fish/completions/glow.fish
+```
 
 ## Global flags
 
@@ -19,6 +46,7 @@ Produces two binaries: `glow` (full) and `glw` (alias).
 | `--client-id` | `GLOW_CLIENT_ID` | OAuth client ID |
 | `--json` | | Output as JSON |
 | `--yes` / `-y` | | Skip confirmation prompts |
+| `--version` | | Print version |
 
 ## Glow instance commands
 
@@ -90,9 +118,18 @@ glow admin billing portal <org_id>          # Open billing portal
 
 ## Dynamic resources (Glow instance)
 
+Parameters can be passed directly as flags or as raw JSON:
+
 ```bash
-glow <resource> <action> [--body JSON]      # e.g. glow personas search
+glow personas search --query math --limit 10
+glow personas search --body '{"query": "math", "limit": 10}'
+glow <resource> <action> --help             # Show available parameters
+```
+
+### Media operations
+
+```bash
 glow <resource> <media> <action> [flags]    # e.g. glow documents file upload --file X
 ```
 
-Media actions: `upload`, `download`, `create`, `chunk`, `status`, `finalize`, `discover`, `preview`
+Actions: `upload`, `download`, `create`, `chunk`, `status`, `finalize`, `discover`, `preview`
