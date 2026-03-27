@@ -56,7 +56,7 @@ impl AdminClient {
         api_request(
             &self.http,
             reqwest::Method::GET,
-            &self.url("/auth/me"),
+            &self.url("/me"),
             None,
             self.bearer_auth(),
         )
@@ -314,7 +314,7 @@ mod tests {
     fn test_whoami_success() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("GET", "/auth/me")
+            .mock("GET", "/me")
             .match_header("Authorization", "Bearer test-token")
             .with_status(200)
             .with_header("content-type", "application/json")
@@ -331,7 +331,7 @@ mod tests {
     #[test]
     fn test_whoami_unauthorized() {
         let mut server = mockito::Server::new();
-        let _mock = server.mock("GET", "/auth/me").with_status(401).create();
+        let _mock = server.mock("GET", "/me").with_status(401).create();
 
         let client = AdminClient::new_with_token(&server.url(), "bad-token");
         let err = client.whoami().unwrap_err();
