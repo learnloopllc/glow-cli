@@ -506,6 +506,8 @@ fn test_admin_api_keys_revoke_without_yes_aborts() {
             "admin",
             "api-keys",
             "revoke",
+            "--org-id",
+            "org-1",
             "key-1",
         ])
         .assert()
@@ -569,6 +571,8 @@ fn test_admin_oauth_clients_revoke_without_yes_aborts() {
             "admin",
             "oauth-clients",
             "revoke",
+            "--org-id",
+            "org-1",
             "ll_client_abc",
         ])
         .assert()
