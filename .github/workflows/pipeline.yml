@@ -1,9 +1,10 @@
-name: Tag, Build & Release
+name: Pipeline
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  push:
+    branches: [main, beta]
+  pull_request:
+    branches: [main, beta]
   workflow_dispatch:
 
 permissions:
@@ -14,27 +15,71 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  tag:
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+  # ── Stage 1: Test ───────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Test
+        run: cargo test
+
+  # ── Stage 2: Release ────────────────────────────────────────
+  release:
+    needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
+      released: ${{ steps.check.outputs.released }}
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          fetch-depth: 0
 
       - name: Read version
         id: version
         run: |
           VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          BRANCH="${{ github.ref_name }}"
+          if [ "$BRANCH" = "beta" ]; then
+            TAG="v${VERSION}-beta"
+          else
+            TAG="v${VERSION}"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Check if release exists
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Release $TAG already exists — skipping"
+            echo "released=false" >> $GITHUB_OUTPUT
+          else
+            echo "Release $TAG not found — will build"
+            echo "released=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create tag (idempotent)
+        if: steps.check.outputs.released == 'true'
         run: |
           TAG="${{ steps.version.outputs.tag }}"
           if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
@@ -45,8 +90,10 @@ jobs:
             echo "Created tag $TAG"
           fi
 
+  # ── Stage 3: Build ──────────────────────────────────────────
   build:
-    needs: tag
+    needs: release
+    if: needs.release.outputs.released == 'true'
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -54,20 +101,14 @@ jobs:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
-            binary_ext: ""
           - os: macos-latest
             target: x86_64-apple-darwin
-            binary_ext: ""
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            binary_ext: ""
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            binary_ext: ".exe"
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -99,15 +140,14 @@ jobs:
           name: glow-${{ matrix.target }}
           path: glow-${{ matrix.target }}.*
 
-  release:
-    name: Create Release
-    needs: [tag, build]
-    if: always() && needs.tag.result == 'success'
+  # ── Stage 4: Publish ────────────────────────────────────────
+  publish:
+    name: Publish Release
+    needs: [release, build]
+    if: needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -120,39 +160,49 @@ jobs:
           chmod +x /tmp/glow
           /tmp/glow --dump-cli-spec > artifacts/cli-spec.json 2>/dev/null || echo '{}' > artifacts/cli-spec.json
 
-      - name: Create or update release
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ needs.tag.outputs.tag }}"
-          if gh release view "$TAG" &>/dev/null; then
-            gh release upload "$TAG" artifacts/* --clobber
-            echo "Updated release $TAG"
-          else
-            gh release create "$TAG" artifacts/* \
-              --title "$TAG" \
-              --generate-notes
-            echo "Created release $TAG"
+          TAG="${{ needs.release.outputs.tag }}"
+          PRERELEASE=""
+          if [ "${{ github.ref_name }}" = "beta" ]; then
+            PRERELEASE="--prerelease"
           fi
+          gh release create "$TAG" artifacts/* \
+            --title "$TAG" \
+            --generate-notes \
+            $PRERELEASE
+          echo "Created release $TAG"
 
       - name: Update Homebrew formula
         run: |
-          VERSION="${{ needs.tag.outputs.version }}"
-          TAG="${{ needs.tag.outputs.tag }}"
-          FORMULA="HomebrewFormula/glow.rb"
+          VERSION="${{ needs.release.outputs.version }}"
+          TAG="${{ needs.release.outputs.tag }}"
+          BRANCH="${{ github.ref_name }}"
 
-          # Compute sha256 for each platform
           SHA_ARM=$(shasum -a 256 artifacts/glow-aarch64-apple-darwin.tar.gz | cut -d' ' -f1)
           SHA_X86_MAC=$(shasum -a 256 artifacts/glow-x86_64-apple-darwin.tar.gz | cut -d' ' -f1)
           SHA_LINUX=$(shasum -a 256 artifacts/glow-x86_64-unknown-linux-gnu.tar.gz | cut -d' ' -f1)
 
-          # Generate the formula
+          if [ "$BRANCH" = "beta" ]; then
+            FORMULA="HomebrewFormula/glow-beta.rb"
+            CLASS_NAME="GlowBeta"
+            CONFLICTS='conflicts_with "glow", because: "both install glow and glw binaries"'
+          else
+            FORMULA="HomebrewFormula/glow.rb"
+            CLASS_NAME="Glow"
+            CONFLICTS='conflicts_with "glow-beta", because: "both install glow and glw binaries"'
+          fi
+
           cat > "$FORMULA" << FORMULA_EOF
-          class Glow < Formula
+          class ${CLASS_NAME} < Formula
             desc "CLI for the Glow platform — manage instances, deployments, and resources"
             homepage "https://github.com/learnloopllc/glow-cli"
             version "${VERSION}"
             license "MIT"
+
+            ${CONFLICTS}
 
             on_macos do
               if Hardware::CPU.arm?
@@ -184,10 +234,8 @@ jobs:
           end
           FORMULA_EOF
 
-          # Remove leading whitespace from heredoc
           sed -i 's/^          //' "$FORMULA"
 
-          # Commit and push (skip CI to avoid loop)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "$FORMULA"
@@ -195,20 +243,27 @@ jobs:
             echo "Formula already up to date"
           else
             git commit -m "chore: update Homebrew formula to ${TAG} [skip ci]"
-            git push origin HEAD:${{ github.event.workflow_run.head_branch || github.ref_name }}
+            git push origin HEAD:${BRANCH}
           fi
 
       - name: Build and push Docker image
         run: |
-          VERSION="${{ needs.tag.outputs.version }}"
+          VERSION="${{ needs.release.outputs.version }}"
+          TAG="${{ needs.release.outputs.tag }}"
+          BRANCH="${{ github.ref_name }}"
+
           tar xzf artifacts/glow-x86_64-unknown-linux-gnu.tar.gz -C /tmp
           cp /tmp/glow .
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker build --label "org.opencontainers.image.source=https://github.com/learnloopllc/glow-cli" -t ghcr.io/learnloopllc/glow-cli:v${VERSION} .
-          docker push ghcr.io/learnloopllc/glow-cli:v${VERSION}
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          if [ "$MAJOR" -ge 2 ]; then
-            docker tag ghcr.io/learnloopllc/glow-cli:v${VERSION} ghcr.io/learnloopllc/glow-cli:latest
+          docker build --label "org.opencontainers.image.source=https://github.com/learnloopllc/glow-cli" -t ghcr.io/learnloopllc/glow-cli:${TAG} .
+          docker push ghcr.io/learnloopllc/glow-cli:${TAG}
+
+          # Rolling tag: latest for main, beta for beta
+          if [ "$BRANCH" = "main" ]; then
+            docker tag ghcr.io/learnloopllc/glow-cli:${TAG} ghcr.io/learnloopllc/glow-cli:latest
             docker push ghcr.io/learnloopllc/glow-cli:latest
+          else
+            docker tag ghcr.io/learnloopllc/glow-cli:${TAG} ghcr.io/learnloopllc/glow-cli:beta
+            docker push ghcr.io/learnloopllc/glow-cli:beta
           fi
           rm glow
