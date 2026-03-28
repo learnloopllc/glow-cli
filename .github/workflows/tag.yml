@@ -18,7 +18,7 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, deploy]
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -48,50 +48,38 @@ jobs:
   build:
     needs: tag
     name: Build ${{ matrix.target }}
-    runs-on: ${{ matrix.os }}
+    runs-on: [self-hosted, Linux, X64, deploy]
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            target: aarch64-apple-darwin
+          - target: aarch64-apple-darwin
             binary_ext: ""
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          - target: x86_64-apple-darwin
             binary_ext: ""
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-gnu
             binary_ext: ""
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
+          - target: x86_64-pc-windows-gnu
             binary_ext: ".exe"
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.target }}
-
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo zigbuild --release --target ${{ matrix.target }}
 
       - name: Package (unix)
-        if: runner.os != 'Windows'
+        if: matrix.binary_ext == ''
         run: |
           cd target/${{ matrix.target }}/release
           tar czf ../../../glow-${{ matrix.target }}.tar.gz glow glw
           cd ../../..
 
       - name: Package (windows)
-        if: runner.os == 'Windows'
+        if: matrix.binary_ext == '.exe'
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ../../../glow-${{ matrix.target }}.zip glow.exe glw.exe
+          tar czf ../../../glow-${{ matrix.target }}.tar.gz glow.exe glw.exe
           cd ../../..
 
       - uses: actions/upload-artifact@v4
@@ -103,7 +91,7 @@ jobs:
     name: Create Release
     needs: [tag, build]
     if: always() && needs.tag.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, deploy]
     steps:
       - uses: actions/checkout@v4
         with:
