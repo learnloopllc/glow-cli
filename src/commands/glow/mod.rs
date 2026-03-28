@@ -166,6 +166,7 @@ pub(crate) fn cmd_problem(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn cmd_stream(
     client: &GlowClient,
     artifact: &str,
