@@ -1,6 +1,6 @@
 // Auto-generated from learnloop-api OpenAPI spec v1.6.0
 // Do not edit manually — regenerated on each API release.
-// Schemas: 71
+// Schemas: 95
 
 use serde::{Deserialize, Serialize};
 
@@ -71,7 +71,10 @@ pub struct BackupDeleteResponse {
 pub struct BackupInfo {
     pub name: String,
     pub size_bytes: i64,
-    pub created_at: String,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub is_template: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -182,6 +185,12 @@ pub struct DailyUsageEntry {
     pub organization_id: String,
     pub usage_date: serde_json::Value,
     pub simulation_count: i64,
+    #[serde(default)]
+    pub attempts_started: Option<i64>,
+    #[serde(default)]
+    pub attempts_completed: Option<i64>,
+    #[serde(default)]
+    pub outcomes: Option<i64>,
     #[serde(default)]
     pub created_at: Option<String>,
     #[serde(default)]
@@ -452,6 +461,8 @@ pub struct OrgUsageResponse {
     pub plan: Option<String>,
     #[serde(default)]
     pub estimated_cost: Option<String>,
+    #[serde(default)]
+    pub meta: Option<OrgUsageMeta>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -653,6 +664,8 @@ pub struct UsageSummaryResponse {
     pub daily_limit: Option<i64>,
     #[serde(default)]
     pub estimated_cost: Option<String>,
+    #[serde(default)]
+    pub meta: Option<OrgUsageMeta>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -694,4 +707,143 @@ pub struct WorkflowRunResponse {
     pub created_at: Option<String>,
     #[serde(default)]
     pub updated_at: Option<String>,
+}
+
+// ── API Keys ─────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateApiKeyRequest {
+    pub organization_id: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub scopes: Option<Vec<String>>,
+    #[serde(default)]
+    pub spend_limit_cents: Option<i64>,
+    #[serde(default)]
+    pub environment: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiKeyResponse {
+    pub id: String,
+    #[serde(default)]
+    pub key: Option<String>,
+    pub name: String,
+    pub key_prefix: String,
+    #[serde(default)]
+    pub scopes: Option<Vec<String>>,
+    #[serde(default)]
+    pub spend_limit_cents: Option<i64>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiKeyListResponse {
+    pub keys: Vec<ApiKeyResponse>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiKeyRevokeResponse {
+    pub revoked: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiKeyUsageResponse {
+    pub total_requests: i64,
+    pub total_tokens: i64,
+    pub total_cost_cents: i64,
+    #[serde(default)]
+    pub by_model: Option<serde_json::Value>,
+}
+
+// ── OAuth Clients ────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateOAuthClientRequest {
+    pub organization_id: String,
+    pub name: String,
+    pub redirect_uris: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OAuthClientResponse {
+    pub id: String,
+    pub client_id: String,
+    #[serde(default)]
+    pub client_secret: Option<String>,
+    pub name: String,
+    #[serde(default)]
+    pub redirect_uris: Option<Vec<String>>,
+    #[serde(default)]
+    pub scopes: Option<Vec<String>>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OAuthClientListResponse {
+    pub clients: Vec<OAuthClientResponse>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateOAuthClientRequest {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub redirect_uris: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OAuthClientRevokeResponse {
+    pub revoked: bool,
+}
+
+// ── AI Gateway ───────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiModelInfo {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub model_type: String,
+    #[serde(default)]
+    pub params: Option<String>,
+    pub description: String,
+    #[serde(default)]
+    pub provider: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiTier {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub cost: String,
+    pub models: Vec<AiModelInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiPricingResponse {
+    pub tiers: Vec<AiTier>,
+    #[serde(default)]
+    pub rate_limits: Option<serde_json::Value>,
+}
+
+// ── Org Usage (outcome-based) ────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrgUsageMeta {
+    #[serde(default)]
+    pub total_outcomes: Option<i64>,
+    #[serde(default)]
+    pub attempts_completed: Option<i64>,
+    #[serde(default)]
+    pub discount_pct: Option<i64>,
+    #[serde(default)]
+    pub gross: Option<String>,
+    #[serde(default)]
+    pub discount: Option<String>,
+    #[serde(default)]
+    pub net: Option<String>,
 }

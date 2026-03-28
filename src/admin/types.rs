@@ -20,6 +20,8 @@ pub type Deployment = DeploymentResponse;
 pub type DeployResponse = DeployCreateResponse;
 pub type BillingPlansResponse = PlansResponse;
 pub type BillingCheckoutResponse = CheckoutResponse;
+pub type BillingInvoicesResponse = InvoicesResponse;
+pub type BillingPricingResponse = PricingResponse;
 
 // ── Tests ─────────────────────────────────────────────────────────
 
@@ -64,5 +66,80 @@ mod tests {
         let resp: UsageSummaryResponse = serde_json::from_str(json).unwrap();
         assert_eq!(resp.total_simulations, 25);
         assert_eq!(resp.estimated_cost, Some("$1.50".into()));
+    }
+
+    #[test]
+    fn test_deserialize_usage_summary_with_outcome_meta() {
+        let json = r#"{"total_simulations": 100, "plan": "payg", "estimated_cost": "$49.00", "meta": {"total_outcomes": 50, "attempts_completed": 80, "discount_pct": 20, "gross": "$100.00", "discount": "-$20.00", "net": "$80.00"}}"#;
+        let resp: UsageSummaryResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.total_simulations, 100);
+        let meta = resp.meta.unwrap();
+        assert_eq!(meta.total_outcomes, Some(50));
+        assert_eq!(meta.discount_pct, Some(20));
+        assert_eq!(meta.net, Some("$80.00".into()));
+    }
+
+    #[test]
+    fn test_deserialize_api_key_response() {
+        let json = r#"{"id": "k-1", "key": "ll_live_abc123", "name": "Test Key", "key_prefix": "ll_live_abc1", "scopes": ["ai"], "spend_limit_cents": 5000}"#;
+        let resp: ApiKeyResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.name, "Test Key");
+        assert_eq!(resp.key, Some("ll_live_abc123".into()));
+        assert_eq!(resp.spend_limit_cents, Some(5000));
+    }
+
+    #[test]
+    fn test_deserialize_oauth_client_response() {
+        let json = r#"{"id": "oc-1", "client_id": "ll_client_abc", "client_secret": "sec", "name": "My App", "redirect_uris": ["https://app.com/cb"], "scopes": ["openid", "profile"]}"#;
+        let resp: OAuthClientResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.client_id, "ll_client_abc");
+        assert_eq!(resp.name, "My App");
+        assert_eq!(resp.scopes, Some(vec!["openid".into(), "profile".into()]));
+    }
+
+    #[test]
+    fn test_deserialize_ai_pricing_response() {
+        let json = r#"{"tiers": [{"id": "light", "name": "Light", "description": "Free local models", "cost": "Free", "models": [{"name": "qwen-3.5-9b", "type": "llm", "description": "Fast 9B model"}]}]}"#;
+        let resp: AiPricingResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.tiers[0].models[0].name, "qwen-3.5-9b");
+    }
+
+    #[test]
+    fn test_deserialize_daily_usage_with_outcomes() {
+        let json = r#"{"daily": [{"id": "d-1", "organization_id": "org-1", "usage_date": "2026-03-01", "simulation_count": 10, "attempts_started": 12, "attempts_completed": 10, "outcomes": 8}], "total_simulations": 10}"#;
+        let resp: DailyUsageResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.daily[0].outcomes, Some(8));
+        assert_eq!(resp.daily[0].attempts_started, Some(12));
+    }
+
+    #[test]
+    fn test_deserialize_invoices() {
+        let json = r#"{"invoices": [{"id": "inv_1", "number": "INV-001", "status": "paid", "amount_due": 4900, "amount_paid": 4900, "currency": "usd", "period_start": "2026-03-01", "period_end": "2026-03-31"}]}"#;
+        let resp: BillingInvoicesResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.invoices[0].amount_due, 4900);
+        assert_eq!(resp.invoices[0].status, Some("paid".into()));
+    }
+
+    #[test]
+    fn test_deserialize_backup_info_with_template() {
+        let json = r#"{"name": "fresh.sql.gz", "size_bytes": 512, "is_template": true}"#;
+        let resp: BackupInfo = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.is_template, Some(true));
+    }
+
+    #[test]
+    fn test_deserialize_invite_response() {
+        let json = r#"{"id": "inv-1", "organization_id": "org-1", "email": "test@example.com", "role": "admin", "token": "tok_abc", "expires_at": "2026-04-28", "claimed": false}"#;
+        let resp: InviteResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.email, "test@example.com");
+        assert_eq!(resp.claimed, Some(false));
+    }
+
+    #[test]
+    fn test_deserialize_member_role_update() {
+        let json = r#"{"updated": true, "user_id": "u-1", "role": "admin"}"#;
+        let resp: UpdateMemberRoleResponse = serde_json::from_str(json).unwrap();
+        assert!(resp.updated);
+        assert_eq!(resp.role, "admin");
     }
 }

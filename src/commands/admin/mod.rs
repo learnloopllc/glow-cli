@@ -1,6 +1,8 @@
+pub mod api_keys;
 pub mod auth;
 pub mod billing;
 pub mod deploy;
+pub mod oauth_clients;
 pub mod orgs;
 pub mod status;
 pub mod usage;

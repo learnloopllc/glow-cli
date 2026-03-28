@@ -256,3 +256,140 @@ pub(crate) fn cmd_deploy_list(
     });
     Ok(())
 }
+
+// ── Backups ──────────────────────────────────────────────────
+
+pub(crate) fn cmd_deploy_backup_create(
+    client: &AdminClient,
+    deployment_id: &str,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    let resp = client.deploy_backup_create(deployment_id)?;
+    output::print_result(mode, &resp, |r| {
+        println!("{} Backup created: {}", "OK".green().bold(), r.name.bold());
+        println!("    Size: {} bytes", r.size_bytes);
+    });
+    Ok(())
+}
+
+pub(crate) fn cmd_deploy_backup_list(
+    client: &AdminClient,
+    deployment_id: &str,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    let resp = client.deploy_backup_list(deployment_id)?;
+    output::print_result(mode, &resp, |r| {
+        println!("{} ({} backups)\n", "Backups".bold(), r.backups.len());
+        for b in &r.backups {
+            let template = if b.is_template == Some(true) {
+                " (template)".dimmed().to_string()
+            } else {
+                String::new()
+            };
+            let ts = b.created_at.as_deref().unwrap_or("");
+            println!(
+                "  {} {} bytes  {}{}",
+                b.name.bold(),
+                b.size_bytes,
+                ts.dimmed(),
+                template
+            );
+        }
+    });
+    Ok(())
+}
+
+pub(crate) fn cmd_deploy_backup_restore(
+    client: &AdminClient,
+    deployment_id: &str,
+    filename: &str,
+    yes: bool,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    if !output::confirm(
+        &format!(
+            "Restore backup '{}' to deployment {}? This will overwrite the current database.",
+            filename, deployment_id
+        ),
+        yes,
+    ) {
+        println!("Aborted.");
+        return Ok(());
+    }
+
+    let resp = client.deploy_backup_restore(deployment_id, filename)?;
+    output::print_result(mode, &resp, |r| {
+        println!(
+            "{} Restoring {} to {}",
+            "OK".green().bold(),
+            r.backup.bold(),
+            r.deployment_id.dimmed()
+        );
+    });
+    Ok(())
+}
+
+pub(crate) fn cmd_deploy_backup_delete(
+    client: &AdminClient,
+    deployment_id: &str,
+    filename: &str,
+    yes: bool,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    if !output::confirm(
+        &format!("Delete backup '{}'?", filename),
+        yes,
+    ) {
+        println!("Aborted.");
+        return Ok(());
+    }
+
+    let resp = client.deploy_backup_delete(deployment_id, filename)?;
+    output::print_result(mode, &resp, |r| {
+        println!("{} Deleted backup {}", "OK".green().bold(), r.name.dimmed());
+    });
+    Ok(())
+}
+
+// ── Versions ─────────────────────────────────────────────────
+
+pub(crate) fn cmd_deploy_versions(
+    client: &AdminClient,
+    component_type: &str,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    let resp = client.deploy_versions(component_type)?;
+    output::print_result(mode, &resp, |r| {
+        println!(
+            "{} ({} versions)\n",
+            format!("Available {} Versions", component_type).bold(),
+            r.versions.len()
+        );
+        for v in &r.versions {
+            let pre = if v.prerelease == Some(true) {
+                " (pre-release)".yellow().to_string()
+            } else {
+                String::new()
+            };
+            let date = v.published_at.as_deref().unwrap_or("");
+            println!(
+                "  {} {} {}{}",
+                v.name.bold(),
+                v.sha[..7.min(v.sha.len())].dimmed(),
+                date.dimmed(),
+                pre
+            );
+        }
+    });
+    Ok(())
+}

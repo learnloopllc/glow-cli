@@ -59,7 +59,7 @@ impl GlowClient {
         api_request(
             &self.http,
             reqwest::Method::GET,
-            &self.url("/health"),
+            &self.url("/"),
             None,
             Auth::None,
         )
@@ -99,14 +99,14 @@ impl GlowClient {
     }
 
     /// Emulate another user profile
-    pub fn emulate(&self, target_profile_id: &str, ttl: u32) -> Result<Value> {
+    pub fn emulate(&self, target_profile_id: &str, ttl_minutes: u32) -> Result<Value> {
         api_request(
             &self.http,
             reqwest::Method::POST,
             &self.url("/emulate"),
             Some(json!({
                 "target_profile_id": target_profile_id,
-                "ttl": ttl,
+                "ttl_minutes": ttl_minutes,
             })),
             self.auth(),
         )
@@ -119,6 +119,43 @@ impl GlowClient {
             reqwest::Method::POST,
             &self.url("/unemulate"),
             Some(json!({})),
+            self.auth(),
+        )
+    }
+
+    // ── Session management ──────────────────────────────────
+
+    /// Create a stream session (returns session ID)
+    pub fn connect(&self) -> Result<Value> {
+        api_request(
+            &self.http,
+            reqwest::Method::POST,
+            &self.url("/connect"),
+            Some(json!({})),
+            self.auth(),
+        )
+    }
+
+    /// Destroy a stream session
+    pub fn disconnect(&self, sid: &str) -> Result<Value> {
+        api_request(
+            &self.http,
+            reqwest::Method::POST,
+            &self.url("/disconnect"),
+            Some(json!({ "sid": sid })),
+            self.auth(),
+        )
+    }
+
+    // ── Problem reporting ─────────────────────────────────────
+
+    /// Report a problem
+    pub fn problem(&self, problem_type: &str, message: &str) -> Result<Value> {
+        api_request(
+            &self.http,
+            reqwest::Method::POST,
+            &self.url("/problem"),
+            Some(json!({ "type": problem_type, "message": message })),
             self.auth(),
         )
     }
@@ -321,6 +358,8 @@ impl GlowClient {
         operation: &str,
         entity_id: Option<&str>,
         cursor: Option<&str>,
+        types: Option<&str>,
+        limit: Option<u32>,
     ) -> Result<blocking::Response> {
         let mut params = vec![
             format!("artifact={}", artifact),
@@ -331,6 +370,12 @@ impl GlowClient {
         }
         if let Some(c) = cursor {
             params.push(format!("cursor={}", c));
+        }
+        if let Some(t) = types {
+            params.push(format!("types={}", t));
+        }
+        if let Some(l) = limit {
+            params.push(format!("limit={}", l));
         }
         let url = format!("{}?{}", self.url("/stream"), params.join("&"));
 
@@ -377,16 +422,17 @@ mod tests {
     fn test_health_success() {
         let mut server = mockito::Server::new();
         let mock = server
-            .mock("GET", "/health")
+            .mock("GET", "/")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(r#"{"status": "healthy", "version": "1.2.3"}"#)
+            .with_body(r#"{"service": "glow-api", "version": "2.4.0", "status": "ok"}"#)
             .create();
 
         let client = GlowClient::new(&server.url());
         let result = client.health().unwrap();
-        assert_eq!(result.status, "healthy");
-        assert_eq!(result.version, Some("1.2.3".into()));
+        assert_eq!(result.status, "ok");
+        assert_eq!(result.service, Some("glow-api".into()));
+        assert_eq!(result.version, Some("2.4.0".into()));
         mock.assert();
     }
 
@@ -444,6 +490,56 @@ mod tests {
         mock.assert();
     }
 
+    // ── Connect / disconnect / problem ─────────────────────
+
+    #[test]
+    fn test_connect() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", "/connect")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"sid": "sess-abc123"}"#)
+            .create();
+
+        let client = GlowClient::new(&server.url());
+        let result = client.connect().unwrap();
+        assert_eq!(result["sid"], "sess-abc123");
+        mock.assert();
+    }
+
+    #[test]
+    fn test_disconnect() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", "/disconnect")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"success": true}"#)
+            .create();
+
+        let client = GlowClient::new(&server.url());
+        let result = client.disconnect("sess-abc123").unwrap();
+        assert_eq!(result["success"], true);
+        mock.assert();
+    }
+
+    #[test]
+    fn test_problem() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", "/problem")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"problem_id": "prob-1", "success": true}"#)
+            .create();
+
+        let client = GlowClient::new(&server.url());
+        let result = client.problem("bug", "Something went wrong").unwrap();
+        assert_eq!(result["problem_id"], "prob-1");
+        mock.assert();
+    }
+
     // ── Context / emulate / generate ────────────────────────
 
     #[test]
@@ -470,13 +566,13 @@ mod tests {
             .mock("POST", "/emulate")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(r#"{"emulating": true, "target_profile_id": "p-2", "ttl": 300}"#)
+            .with_body(r#"{"allowed": true, "grant_id": "g-1", "expires_at": "2026-03-28T16:00:00Z"}"#)
             .create();
 
         let client = GlowClient::new(&server.url());
-        let result = client.emulate("p-2", 300).unwrap();
-        assert_eq!(result["emulating"], true);
-        assert_eq!(result["ttl"], 300);
+        let result = client.emulate("p-2", 120).unwrap();
+        assert_eq!(result["allowed"], true);
+        assert!(result["grant_id"].is_string());
         mock.assert();
     }
 
@@ -545,7 +641,7 @@ mod tests {
             .create();
 
         let client = GlowClient::new(&server.url());
-        let resp = client.stream("personas", "create", None, None).unwrap();
+        let resp = client.stream("personas", "create", None, None, None, None).unwrap();
         assert!(resp.status().is_success());
         mock.assert();
     }

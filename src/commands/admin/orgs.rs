@@ -198,3 +198,80 @@ pub(crate) fn cmd_org_deployments(
     });
     Ok(())
 }
+
+pub(crate) fn cmd_org_member_update_role(
+    client: &AdminClient,
+    org_id: &str,
+    user_id: &str,
+    role: &str,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    let resp = client.org_member_update_role(org_id, user_id, role)?;
+    output::print_result(mode, &resp, |r| {
+        println!(
+            "{} Updated {} to {}",
+            "OK".green().bold(),
+            r.user_id.dimmed(),
+            r.role.bold()
+        );
+    });
+    Ok(())
+}
+
+pub(crate) fn cmd_org_invite(
+    client: &AdminClient,
+    org_id: &str,
+    email: &str,
+    role: &str,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    let resp = client.org_invite(org_id, email, role)?;
+    output::print_result(mode, &resp, |r| {
+        println!(
+            "{} Invited {} as {}",
+            "OK".green().bold(),
+            r.email.bold(),
+            r.role
+        );
+        if let Some(expires) = &r.expires_at {
+            println!("  Expires: {}", expires.dimmed());
+        }
+    });
+    Ok(())
+}
+
+pub(crate) fn cmd_org_invites_list(
+    client: &AdminClient,
+    org_id: &str,
+    pending_only: bool,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    let resp = client.org_invites_list(org_id, pending_only)?;
+    output::print_result(mode, &resp, |r| {
+        println!("{} ({} invites)\n", "Invitations".bold(), r.invites.len());
+        for inv in &r.invites {
+            let claimed = if inv.claimed == Some(true) {
+                "claimed".green().to_string()
+            } else {
+                "pending".yellow().to_string()
+            };
+            println!(
+                "  {} {} [{}] {}",
+                inv.id.dimmed(),
+                inv.email.bold(),
+                inv.role,
+                claimed
+            );
+            if let Some(expires) = &inv.expires_at {
+                println!("    Expires: {}", expires.dimmed());
+            }
+        }
+    });
+    Ok(())
+}

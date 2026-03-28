@@ -65,7 +65,7 @@ enum Commands {
     Emulate {
         /// Target profile ID to emulate
         target_profile_id: String,
-        /// TTL in seconds
+        /// TTL in minutes (default: 120 = 2 hours)
         #[arg(long, default_value = "120")]
         ttl: u32,
     },
@@ -96,6 +96,31 @@ enum Commands {
         /// Cursor for resuming from a position
         #[arg(long)]
         cursor: Option<String>,
+        /// Event type filter (comma-separated)
+        #[arg(long)]
+        types: Option<String>,
+        /// Max events per batch (1-200)
+        #[arg(long)]
+        limit: Option<u32>,
+    },
+
+    /// Create a stream session (returns session ID)
+    Connect,
+
+    /// Destroy a stream session
+    Disconnect {
+        /// Session ID to destroy
+        sid: String,
+    },
+
+    /// Report a problem
+    Problem {
+        /// Problem type
+        #[arg(long, alias = "type")]
+        kind: String,
+        /// Problem description
+        #[arg(long)]
+        message: String,
     },
 
     /// Manage configured Glow instances
@@ -161,8 +186,8 @@ enum AdminCommands {
 
     /// View usage summary for an organization
     Usage {
-        /// Organization ID (defaults to your primary org)
-        org_id: Option<String>,
+        #[command(subcommand)]
+        action: UsageCommands,
     },
 
     /// Deploy a new Glow instance
@@ -175,6 +200,26 @@ enum AdminCommands {
     Billing {
         #[command(subcommand)]
         action: BillingCommands,
+    },
+
+    /// Manage API keys for the AI gateway
+    #[command(alias = "keys")]
+    ApiKeys {
+        #[command(subcommand)]
+        action: ApiKeyCommands,
+    },
+
+    /// Manage OAuth clients ("Login with LearnLoop")
+    #[command(alias = "oauth")]
+    OauthClients {
+        #[command(subcommand)]
+        action: OAuthClientCommands,
+    },
+
+    /// AI gateway information
+    Ai {
+        #[command(subcommand)]
+        action: AiCommands,
     },
 }
 
@@ -223,6 +268,33 @@ enum OrgCommands {
         /// Organization ID
         id: String,
     },
+    /// Manage invitations
+    Invites {
+        /// Organization ID
+        id: String,
+        #[command(subcommand)]
+        action: OrgInviteCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum OrgInviteCommands {
+    /// List invitations
+    #[command(alias = "ls")]
+    List {
+        /// Show all invites (including claimed)
+        #[arg(long)]
+        all: bool,
+    },
+    /// Send an invitation
+    Send {
+        /// Email address to invite
+        #[arg(long)]
+        email: String,
+        /// Role: admin or member
+        #[arg(long, default_value = "member")]
+        role: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -240,6 +312,34 @@ enum OrgMemberCommands {
     Remove {
         /// User ID to remove
         user_id: String,
+    },
+    /// Update a member's role
+    Role {
+        /// User ID
+        user_id: String,
+        /// New role: admin or member
+        #[arg(long)]
+        set: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum UsageCommands {
+    /// Show usage summary for an organization
+    Summary {
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
+    },
+    /// Show daily usage breakdown
+    Daily {
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
+        /// Start date (YYYY-MM-DD)
+        #[arg(long)]
+        from: Option<String>,
+        /// End date (YYYY-MM-DD)
+        #[arg(long)]
+        to: Option<String>,
     },
 }
 
@@ -265,6 +365,16 @@ enum BillingCommands {
         /// Organization ID (defaults to your primary org)
         org_id: Option<String>,
     },
+    /// List invoices for an organization
+    Invoices {
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
+        /// Number of invoices to show
+        #[arg(long, default_value = "10")]
+        limit: u32,
+    },
+    /// Show pricing tiers and features
+    Pricing,
 }
 
 #[derive(Subcommand)]
@@ -376,6 +486,132 @@ enum DeployCommands {
         #[arg(long)]
         all: bool,
     },
+    /// Create a database backup
+    BackupCreate {
+        /// Deployment ID
+        id: String,
+    },
+    /// List database backups
+    #[command(alias = "backups")]
+    BackupList {
+        /// Deployment ID
+        id: String,
+    },
+    /// Restore a database backup
+    BackupRestore {
+        /// Deployment ID
+        id: String,
+        /// Backup filename
+        #[arg(long)]
+        file: String,
+    },
+    /// Delete a database backup
+    BackupDelete {
+        /// Deployment ID
+        id: String,
+        /// Backup filename
+        #[arg(long)]
+        file: String,
+    },
+    /// List available versions for deployment
+    Versions {
+        /// Component type: api or client
+        #[arg(long, default_value = "api")]
+        component_type: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum ApiKeyCommands {
+    /// Create a new API key
+    #[command(alias = "new")]
+    Create {
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
+        /// Key name
+        #[arg(long)]
+        name: Option<String>,
+        /// Scopes (comma-separated, e.g. "ai")
+        #[arg(long)]
+        scopes: Option<String>,
+        /// Spend limit in cents
+        #[arg(long)]
+        spend_limit: Option<i64>,
+    },
+    /// List API keys for an organization
+    #[command(alias = "ls")]
+    List {
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
+    },
+    /// Revoke an API key
+    #[command(alias = "rm")]
+    Revoke {
+        /// Organization ID (defaults to your primary org)
+        #[arg(long)]
+        org_id: Option<String>,
+        /// Key ID to revoke
+        key_id: String,
+    },
+    /// View AI usage for API keys
+    Usage {
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
+        /// Number of days to show (default: 30)
+        #[arg(long, default_value = "30")]
+        days: u32,
+    },
+}
+
+#[derive(Subcommand)]
+enum OAuthClientCommands {
+    /// Register a new OAuth client
+    #[command(alias = "new")]
+    Create {
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
+        /// Client app name
+        #[arg(long)]
+        name: String,
+        /// Redirect URIs (comma-separated)
+        #[arg(long)]
+        redirect_uris: String,
+    },
+    /// List OAuth clients for an organization
+    #[command(alias = "ls")]
+    List {
+        /// Organization ID (defaults to your primary org)
+        org_id: Option<String>,
+    },
+    /// Update an OAuth client
+    Update {
+        /// Organization ID (defaults to your primary org)
+        #[arg(long)]
+        org_id: Option<String>,
+        /// Client ID to update
+        client_id: String,
+        /// New name
+        #[arg(long)]
+        name: Option<String>,
+        /// New redirect URIs (comma-separated)
+        #[arg(long)]
+        redirect_uris: Option<String>,
+    },
+    /// Revoke an OAuth client
+    #[command(alias = "rm")]
+    Revoke {
+        /// Organization ID (defaults to your primary org)
+        #[arg(long)]
+        org_id: Option<String>,
+        /// Client ID to revoke
+        client_id: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum AiCommands {
+    /// Show AI gateway pricing and model catalog
+    Pricing,
 }
 
 #[derive(Subcommand)]
@@ -595,6 +831,8 @@ fn main() -> Result<()> {
             operation,
             entity_id,
             cursor,
+            types,
+            limit,
         } => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
             let client = glow::GlowClient::new(&glow_url);
@@ -604,8 +842,25 @@ fn main() -> Result<()> {
                 &operation,
                 entity_id.as_deref(),
                 cursor.as_deref(),
+                types.as_deref(),
+                limit,
                 mode,
             )?
+        }
+        Commands::Connect => {
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
+            let client = glow::GlowClient::new(&glow_url);
+            glow_cmd::cmd_connect(&client, mode)?
+        }
+        Commands::Disconnect { sid } => {
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
+            let client = glow::GlowClient::new(&glow_url);
+            glow_cmd::cmd_disconnect(&client, &sid, mode)?
+        }
+        Commands::Problem { kind, message } => {
+            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
+            let client = glow::GlowClient::new(&glow_url);
+            glow_cmd::cmd_problem(&client, &kind, &message, mode)?
         }
 
         // ── Shell completions ────────────────────────────────
@@ -776,17 +1031,42 @@ fn dispatch_admin(
                     OrgMemberCommands::Remove { user_id } => {
                         admin_cmd::orgs::cmd_org_member_remove(&ll, &id, &user_id, yes, mode)?
                     }
+                    OrgMemberCommands::Role { user_id, set } => {
+                        admin_cmd::orgs::cmd_org_member_update_role(&ll, &id, &user_id, &set, mode)?
+                    }
                 },
                 OrgCommands::Deployments { id } => {
                     admin_cmd::orgs::cmd_org_deployments(&ll, &id, mode)?
                 }
+                OrgCommands::Invites { id, action } => match action {
+                    OrgInviteCommands::List { all } => {
+                        admin_cmd::orgs::cmd_org_invites_list(&ll, &id, !all, mode)?
+                    }
+                    OrgInviteCommands::Send { email, role } => {
+                        admin_cmd::orgs::cmd_org_invite(&ll, &id, &email, &role, mode)?
+                    }
+                },
             }
         }
 
-        AdminCommands::Usage { org_id } => {
+        AdminCommands::Usage { action } => {
             let ll = admin::AdminClient::new(api_url);
-            let oid = require_org_id(org_id, &cfg)?;
-            admin_cmd::usage::cmd_usage(&ll, &oid, mode)?
+            match action {
+                UsageCommands::Summary { org_id } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::usage::cmd_usage(&ll, &oid, mode)?
+                }
+                UsageCommands::Daily { org_id, from, to } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::usage::cmd_usage_daily(
+                        &ll,
+                        &oid,
+                        from.as_deref(),
+                        to.as_deref(),
+                        mode,
+                    )?
+                }
+            }
         }
 
         AdminCommands::Deploy { action } => {
@@ -874,6 +1154,21 @@ fn dispatch_admin(
                 DeployCommands::List { all } => {
                     admin_cmd::deploy::cmd_deploy_list(&ll, !all, mode)?
                 }
+                DeployCommands::BackupCreate { id } => {
+                    admin_cmd::deploy::cmd_deploy_backup_create(&ll, &id, mode)?
+                }
+                DeployCommands::BackupList { id } => {
+                    admin_cmd::deploy::cmd_deploy_backup_list(&ll, &id, mode)?
+                }
+                DeployCommands::BackupRestore { id, file } => {
+                    admin_cmd::deploy::cmd_deploy_backup_restore(&ll, &id, &file, yes, mode)?
+                }
+                DeployCommands::BackupDelete { id, file } => {
+                    admin_cmd::deploy::cmd_deploy_backup_delete(&ll, &id, &file, yes, mode)?
+                }
+                DeployCommands::Versions { component_type } => {
+                    admin_cmd::deploy::cmd_deploy_versions(&ll, &component_type, mode)?
+                }
             }
         }
 
@@ -892,6 +1187,132 @@ fn dispatch_admin(
                 BillingCommands::Portal { org_id } => {
                     let oid = require_org_id(org_id, &cfg)?;
                     admin_cmd::billing::cmd_billing_portal(&ll, &oid, mode)?
+                }
+                BillingCommands::Invoices { org_id, limit } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::billing::cmd_billing_invoices(&ll, &oid, limit, mode)?
+                }
+                BillingCommands::Pricing => {
+                    admin_cmd::billing::cmd_billing_pricing(&ll, mode)?
+                }
+            }
+        }
+
+        AdminCommands::ApiKeys { action } => {
+            let ll = admin::AdminClient::new(api_url);
+            match action {
+                ApiKeyCommands::Create {
+                    org_id,
+                    name,
+                    scopes,
+                    spend_limit,
+                } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    let scope_vec = scopes.map(|s| {
+                        s.split(',').map(|v| v.trim().to_string()).collect()
+                    });
+                    admin_cmd::api_keys::cmd_api_keys_create(
+                        &ll,
+                        &oid,
+                        name.as_deref(),
+                        scope_vec,
+                        spend_limit,
+                        mode,
+                    )?
+                }
+                ApiKeyCommands::List { org_id } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::api_keys::cmd_api_keys_list(&ll, &oid, mode)?
+                }
+                ApiKeyCommands::Revoke { org_id, key_id } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::api_keys::cmd_api_keys_revoke(&ll, &oid, &key_id, yes, mode)?
+                }
+                ApiKeyCommands::Usage { org_id, days } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::api_keys::cmd_api_keys_usage(&ll, &oid, days, mode)?
+                }
+            }
+        }
+
+        AdminCommands::OauthClients { action } => {
+            let ll = admin::AdminClient::new(api_url);
+            match action {
+                OAuthClientCommands::Create {
+                    org_id,
+                    name,
+                    redirect_uris,
+                } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    let uris: Vec<String> = redirect_uris
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .collect();
+                    admin_cmd::oauth_clients::cmd_oauth_clients_create(
+                        &ll, &oid, &name, uris, mode,
+                    )?
+                }
+                OAuthClientCommands::List { org_id } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::oauth_clients::cmd_oauth_clients_list(&ll, &oid, mode)?
+                }
+                OAuthClientCommands::Update {
+                    org_id,
+                    client_id,
+                    name,
+                    redirect_uris,
+                } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    let uris = redirect_uris.map(|u| {
+                        u.split(',').map(|s| s.trim().to_string()).collect()
+                    });
+                    admin_cmd::oauth_clients::cmd_oauth_clients_update(
+                        &ll,
+                        &oid,
+                        &client_id,
+                        name.as_deref(),
+                        uris,
+                        mode,
+                    )?
+                }
+                OAuthClientCommands::Revoke { org_id, client_id } => {
+                    let oid = require_org_id(org_id, &cfg)?;
+                    admin_cmd::oauth_clients::cmd_oauth_clients_revoke(
+                        &ll, &oid, &client_id, yes, mode,
+                    )?
+                }
+            }
+        }
+
+        AdminCommands::Ai { action } => {
+            let ll = admin::AdminClient::new(api_url);
+            match action {
+                AiCommands::Pricing => {
+                    use colored::Colorize;
+
+                    let resp = ll.ai_pricing()?;
+                    output::print_result(mode, &resp, |r| {
+                        println!("{}\n", "AI Gateway Pricing".bold());
+                        for tier in &r.tiers {
+                            println!("  {} — {}", tier.name.bold(), tier.cost);
+                            println!("    {}", tier.description.dimmed());
+                            for model in &tier.models {
+                                let provider = model
+                                    .provider
+                                    .as_deref()
+                                    .map(|p| format!(" ({})", p))
+                                    .unwrap_or_default();
+                                println!(
+                                    "      {} [{}]{} — {}",
+                                    model.name.bold(),
+                                    model.model_type.dimmed(),
+                                    provider.dimmed(),
+                                    model.description,
+                                );
+                            }
+                            println!();
+                        }
+                    });
                 }
             }
         }

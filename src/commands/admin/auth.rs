@@ -23,8 +23,9 @@ pub(crate) fn cmd_instance_login(
     // Try to fetch credentials from LearnLoop by finding the matching deployment
     let (cid, secret) = match resolve_instance_credentials(server_url, admin_api_url) {
         Ok((c, s)) => (c, Some(s)),
-        Err(_) => {
-            eprintln!("Could not fetch credentials from LearnLoop. Using default client_id.");
+        Err(e) => {
+            eprintln!("Could not fetch credentials from LearnLoop: {}", e);
+            eprintln!("Falling back to default client_id.");
             ("api-client".to_string(), None)
         }
     };

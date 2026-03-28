@@ -89,3 +89,79 @@ pub(crate) fn cmd_billing_portal(
     }
     Ok(())
 }
+
+pub(crate) fn cmd_billing_invoices(
+    client: &AdminClient,
+    org_id: &str,
+    limit: u32,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    let resp = client.billing_invoices(org_id, limit)?;
+    output::print_result(mode, &resp, |r| {
+        println!("{} ({} invoices)\n", "Invoices".bold(), r.invoices.len());
+        for inv in &r.invoices {
+            let status = match inv.status.as_deref() {
+                Some("paid") => "paid".green().to_string(),
+                Some("open") => "open".yellow().to_string(),
+                Some("draft") => "draft".dimmed().to_string(),
+                Some(s) => s.to_string(),
+                None => "unknown".dimmed().to_string(),
+            };
+            let number = inv.number.as_deref().unwrap_or(&inv.id);
+            let amount = format!("${:.2}", inv.amount_due as f64 / 100.0);
+            println!("  {} {} [{}]", number.bold(), amount, status);
+            if let Some(start) = &inv.period_start {
+                let end = inv.period_end.as_deref().unwrap_or("?");
+                println!("    Period: {} — {}", start.dimmed(), end.dimmed());
+            }
+            if let Some(url) = &inv.hosted_invoice_url {
+                println!("    {}", url.dimmed());
+            }
+        }
+    });
+    Ok(())
+}
+
+pub(crate) fn cmd_billing_pricing(client: &AdminClient, mode: OutputMode) -> Result<()> {
+    use colored::Colorize;
+
+    let resp = client.billing_pricing()?;
+    output::print_result(mode, &resp, |r| {
+        println!("{}\n", "Pricing".bold());
+        for tier in &r.tiers {
+            let highlight = if tier.highlighted == Some(true) {
+                " *".yellow().to_string()
+            } else {
+                String::new()
+            };
+            println!(
+                "  {} — {}{}",
+                tier.name.bold(),
+                tier.price,
+                highlight
+            );
+            if let Some(unit) = &tier.unit {
+                print!("    per {}", unit);
+                if let Some(period) = &tier.billing_period {
+                    print!(" ({})", period);
+                }
+                println!();
+            }
+            println!("    {}", tier.description.dimmed());
+            println!();
+        }
+
+        if !r.features.is_empty() {
+            println!("{}", "Features:".bold());
+            for feat in &r.features {
+                println!("  {}", feat.name);
+                for (tier_id, val) in &feat.values {
+                    println!("    {}: {}", tier_id.dimmed(), val);
+                }
+            }
+        }
+    });
+    Ok(())
+}

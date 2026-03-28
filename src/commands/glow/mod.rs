@@ -119,15 +119,62 @@ pub(crate) fn cmd_generate(
     Ok(())
 }
 
+pub(crate) fn cmd_connect(client: &GlowClient, mode: OutputMode) -> Result<()> {
+    use colored::Colorize;
+
+    let response = client.connect()?;
+    output::print_result(mode, &response, |resp| {
+        if let Some(sid) = resp.get("sid").and_then(|v| v.as_str()) {
+            println!("{} Session created: {}", "OK".green().bold(), sid.bold());
+            println!(
+                "  Use with: glow stream --artifact <type> --operation <op>"
+            );
+            println!("  Destroy with: glow disconnect {}", sid);
+        }
+    });
+    Ok(())
+}
+
+pub(crate) fn cmd_disconnect(client: &GlowClient, sid: &str, mode: OutputMode) -> Result<()> {
+    use colored::Colorize;
+
+    let response = client.disconnect(sid)?;
+    output::print_result(mode, &response, |_| {
+        println!("{} Session destroyed: {}", "OK".green().bold(), sid.dimmed());
+    });
+    Ok(())
+}
+
+pub(crate) fn cmd_problem(
+    client: &GlowClient,
+    problem_type: &str,
+    message: &str,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    let response = client.problem(problem_type, message)?;
+    output::print_result(mode, &response, |resp| {
+        if let Some(id) = resp.get("problem_id").and_then(|v| v.as_str()) {
+            println!("{} Problem reported: {}", "OK".green().bold(), id.dimmed());
+        } else {
+            println!("{} Problem reported", "OK".green().bold());
+        }
+    });
+    Ok(())
+}
+
 pub(crate) fn cmd_stream(
     client: &GlowClient,
     artifact: &str,
     operation: &str,
     entity_id: Option<&str>,
     cursor: Option<&str>,
+    types: Option<&str>,
+    limit: Option<u32>,
     mode: OutputMode,
 ) -> Result<()> {
-    let response = client.stream(artifact, operation, entity_id, cursor)?;
+    let response = client.stream(artifact, operation, entity_id, cursor, types, limit)?;
 
     match mode {
         OutputMode::Json => {
@@ -347,12 +394,15 @@ pub(crate) fn cmd_health(client: &GlowClient, mode: OutputMode) -> Result<()> {
 
     let response = client.health()?;
     output::print_result(mode, &response, |resp| {
-        let indicator = if resp.status == "healthy" || resp.status == "ok" {
+        let indicator = if resp.status == "ok" {
             "●".green()
         } else {
             "●".red()
         };
         println!("{} Glow instance: {}", indicator, resp.status.bold());
+        if let Some(ref svc) = resp.service {
+            println!("  Service: {}", svc);
+        }
         if let Some(ref v) = resp.version {
             println!("  Version: {}", v.dimmed());
         }

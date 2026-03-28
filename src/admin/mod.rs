@@ -380,6 +380,331 @@ impl AdminClient {
             self.bearer_auth(),
         )
     }
+
+    pub fn billing_invoices(
+        &self,
+        org_id: &str,
+        limit: u32,
+    ) -> Result<types::BillingInvoicesResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/billing/invoices/{}?limit={}", org_id, limit)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn billing_pricing(&self) -> Result<types::BillingPricingResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url("/billing/pricing"),
+            None,
+            Auth::None,
+        )
+    }
+
+    // ── Usage (daily) ────────────────────────────────────────
+
+    pub fn usage_daily(
+        &self,
+        org_id: &str,
+        from: Option<&str>,
+        to: Option<&str>,
+    ) -> Result<types::DailyUsageResponse> {
+        let mut query = String::new();
+        if let Some(f) = from {
+            query.push_str(&format!("?from={}", f));
+        }
+        if let Some(t) = to {
+            let sep = if query.is_empty() { '?' } else { '&' };
+            query.push_str(&format!("{}to={}", sep, t));
+        }
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/usage/daily/{}{}", org_id, query)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    // ── API Keys ─────────────────────────────────────────────
+
+    pub fn api_keys_create(
+        &self,
+        org_id: &str,
+        name: Option<&str>,
+        scopes: Option<Vec<String>>,
+        spend_limit_cents: Option<i64>,
+    ) -> Result<types::ApiKeyResponse> {
+        let mut body = json!({ "organization_id": org_id });
+        if let Some(n) = name {
+            body["name"] = json!(n);
+        }
+        if let Some(s) = scopes {
+            body["scopes"] = json!(s);
+        }
+        if let Some(l) = spend_limit_cents {
+            body["spend_limit_cents"] = json!(l);
+        }
+        api_request(
+            &self.http,
+            reqwest::Method::POST,
+            &self.url("/api-keys"),
+            Some(body),
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn api_keys_list(&self, org_id: &str) -> Result<types::ApiKeyListResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/api-keys/{}", org_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn api_keys_revoke(
+        &self,
+        org_id: &str,
+        key_id: &str,
+    ) -> Result<types::ApiKeyRevokeResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::DELETE,
+            &self.url(&format!("/api-keys/{}/{}", org_id, key_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn api_keys_usage(
+        &self,
+        org_id: &str,
+        days: u32,
+    ) -> Result<types::ApiKeyUsageResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/api-keys/{}/usage?days={}", org_id, days)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    // ── OAuth Clients ────────────────────────────────────────
+
+    pub fn oauth_clients_create(
+        &self,
+        org_id: &str,
+        name: &str,
+        redirect_uris: Vec<String>,
+    ) -> Result<types::OAuthClientResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::POST,
+            &self.url("/oauth-clients"),
+            Some(json!({
+                "organization_id": org_id,
+                "name": name,
+                "redirect_uris": redirect_uris,
+            })),
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn oauth_clients_list(&self, org_id: &str) -> Result<types::OAuthClientListResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/oauth-clients/{}", org_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn oauth_clients_update(
+        &self,
+        org_id: &str,
+        client_id: &str,
+        name: Option<&str>,
+        redirect_uris: Option<Vec<String>>,
+    ) -> Result<types::OAuthClientResponse> {
+        let mut body = json!({});
+        if let Some(n) = name {
+            body["name"] = json!(n);
+        }
+        if let Some(uris) = redirect_uris {
+            body["redirect_uris"] = json!(uris);
+        }
+        api_request(
+            &self.http,
+            reqwest::Method::PUT,
+            &self.url(&format!("/oauth-clients/{}/{}", org_id, client_id)),
+            Some(body),
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn oauth_clients_revoke(
+        &self,
+        org_id: &str,
+        client_id: &str,
+    ) -> Result<types::OAuthClientRevokeResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::DELETE,
+            &self.url(&format!("/oauth-clients/{}/{}", org_id, client_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    // ── AI Gateway ───────────────────────────────────────────
+
+    pub fn ai_pricing(&self) -> Result<types::AiPricingResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url("/ai/pricing"),
+            None,
+            Auth::None,
+        )
+    }
+
+    // ── Deploy: Backups ──────────────────────────────────────
+
+    pub fn deploy_backup_create(
+        &self,
+        deployment_id: &str,
+    ) -> Result<types::BackupInfo> {
+        api_request(
+            &self.http,
+            reqwest::Method::POST,
+            &self.url(&format!("/deploy/{}/backups", deployment_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn deploy_backup_list(
+        &self,
+        deployment_id: &str,
+    ) -> Result<types::BackupsListResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/deploy/{}/backups", deployment_id)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn deploy_backup_restore(
+        &self,
+        deployment_id: &str,
+        filename: &str,
+    ) -> Result<types::BackupRestoreResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::POST,
+            &self.url(&format!(
+                "/deploy/{}/backups/{}/restore",
+                deployment_id, filename
+            )),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn deploy_backup_delete(
+        &self,
+        deployment_id: &str,
+        filename: &str,
+    ) -> Result<types::BackupDeleteResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::DELETE,
+            &self.url(&format!(
+                "/deploy/{}/backups/{}",
+                deployment_id, filename
+            )),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    // ── Deploy: Versions ─────────────────────────────────────
+
+    pub fn deploy_versions(
+        &self,
+        component_type: &str,
+    ) -> Result<types::DeployVersionsResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/deploy/versions/{}", component_type)),
+            None,
+            self.bearer_auth(),
+        )
+    }
+
+    // ── Org Members: role update ─────────────────────────────
+
+    pub fn org_member_update_role(
+        &self,
+        org_id: &str,
+        user_id: &str,
+        role: &str,
+    ) -> Result<types::UpdateMemberRoleResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::PUT,
+            &self.url(&format!("/organizations/{}/members/{}", org_id, user_id)),
+            Some(json!({ "role": role })),
+            self.bearer_auth(),
+        )
+    }
+
+    // ── Org Invitations ──────────────────────────────────────
+
+    pub fn org_invite(
+        &self,
+        org_id: &str,
+        email: &str,
+        role: &str,
+    ) -> Result<types::InviteResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::POST,
+            &self.url(&format!("/organizations/{}/invitations", org_id)),
+            Some(json!({ "email": email, "role": role })),
+            self.bearer_auth(),
+        )
+    }
+
+    pub fn org_invites_list(
+        &self,
+        org_id: &str,
+        pending_only: bool,
+    ) -> Result<types::InviteListResponse> {
+        let query = if !pending_only {
+            "?pending_only=false"
+        } else {
+            ""
+        };
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url(&format!("/organizations/{}/invitations{}", org_id, query)),
+            None,
+            self.bearer_auth(),
+        )
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────
@@ -683,6 +1008,360 @@ mod tests {
         let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.billing_portal("org-1").unwrap();
         assert!(resp.url.contains("stripe"));
+        mock.assert();
+    }
+
+    #[test]
+    fn test_billing_invoices_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/billing/invoices/org-1?limit=5")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"invoices": [{"id": "inv_1", "number": "INV-001", "status": "paid", "amount_due": 4900, "amount_paid": 4900, "currency": "usd"}]}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.billing_invoices("org-1", 5).unwrap();
+        assert_eq!(resp.invoices.len(), 1);
+        assert_eq!(resp.invoices[0].status, Some("paid".into()));
+        assert_eq!(resp.invoices[0].amount_due, 4900);
+        mock.assert();
+    }
+
+    #[test]
+    fn test_billing_pricing_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/billing/pricing")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"tiers": [{"id": "free", "name": "Free", "price": "$0", "description": "Get started", "cta": "Start Free"}], "features": []}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.billing_pricing().unwrap();
+        assert_eq!(resp.tiers[0].id, "free");
+        mock.assert();
+    }
+
+    #[test]
+    fn test_usage_daily_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/usage/daily/org-1?from=2026-03-01&to=2026-03-28")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"daily": [{"id": "d-1", "organization_id": "org-1", "usage_date": "2026-03-01", "simulation_count": 10, "attempts_started": 12, "attempts_completed": 10, "outcomes": 8}], "total_simulations": 10}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client
+            .usage_daily("org-1", Some("2026-03-01"), Some("2026-03-28"))
+            .unwrap();
+        assert_eq!(resp.total_simulations, 10);
+        assert_eq!(resp.daily[0].outcomes, Some(8));
+        assert_eq!(resp.daily[0].attempts_started, Some(12));
+        mock.assert();
+    }
+
+    #[test]
+    fn test_usage_summary_with_meta() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/usage/summary/org-1")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"total_simulations": 100, "plan": "payg", "estimated_cost": "$49.00", "meta": {"total_outcomes": 50, "attempts_completed": 80, "discount_pct": 20, "gross": "$100.00", "discount": "-$20.00", "net": "$80.00"}}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.usage_summary("org-1").unwrap();
+        assert_eq!(resp.plan, Some("payg".into()));
+        let meta = resp.meta.unwrap();
+        assert_eq!(meta.total_outcomes, Some(50));
+        assert_eq!(meta.discount_pct, Some(20));
+        assert_eq!(meta.net, Some("$80.00".into()));
+        mock.assert();
+    }
+
+    #[test]
+    fn test_api_keys_create_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", "/api-keys")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"id": "key-1", "key": "ll_live_abc123xyz", "name": "My Key", "key_prefix": "ll_live_abc1", "scopes": ["ai"], "spend_limit_cents": 10000}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client
+            .api_keys_create("org-1", Some("My Key"), Some(vec!["ai".into()]), Some(10000))
+            .unwrap();
+        assert_eq!(resp.name, "My Key");
+        assert_eq!(resp.key, Some("ll_live_abc123xyz".into()));
+        assert_eq!(resp.spend_limit_cents, Some(10000));
+        mock.assert();
+    }
+
+    #[test]
+    fn test_api_keys_list_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/api-keys/org-1")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"keys": [{"id": "key-1", "name": "Default", "key_prefix": "ll_live_abc1", "scopes": ["ai"]}]}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.api_keys_list("org-1").unwrap();
+        assert_eq!(resp.keys.len(), 1);
+        assert_eq!(resp.keys[0].key_prefix, "ll_live_abc1");
+        mock.assert();
+    }
+
+    #[test]
+    fn test_api_keys_revoke_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("DELETE", "/api-keys/org-1/key-1")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"revoked": true}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.api_keys_revoke("org-1", "key-1").unwrap();
+        assert!(resp.revoked);
+        mock.assert();
+    }
+
+    #[test]
+    fn test_api_keys_usage_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/api-keys/org-1/usage?days=7")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"total_requests": 150, "total_tokens": 50000, "total_cost_cents": 250}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.api_keys_usage("org-1", 7).unwrap();
+        assert_eq!(resp.total_requests, 150);
+        assert_eq!(resp.total_tokens, 50000);
+        assert_eq!(resp.total_cost_cents, 250);
+        mock.assert();
+    }
+
+    #[test]
+    fn test_oauth_clients_create_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", "/oauth-clients")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"id": "oc-1", "client_id": "ll_client_abc", "client_secret": "secret123", "name": "My App", "redirect_uris": ["https://app.com/callback"], "scopes": ["openid", "profile"]}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client
+            .oauth_clients_create("org-1", "My App", vec!["https://app.com/callback".into()])
+            .unwrap();
+        assert_eq!(resp.client_id, "ll_client_abc");
+        assert_eq!(resp.client_secret, Some("secret123".into()));
+        assert_eq!(resp.name, "My App");
+        mock.assert();
+    }
+
+    #[test]
+    fn test_oauth_clients_list_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/oauth-clients/org-1")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"clients": [{"id": "oc-1", "client_id": "ll_client_abc", "name": "My App", "redirect_uris": ["https://app.com/cb"], "scopes": ["openid"]}]}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.oauth_clients_list("org-1").unwrap();
+        assert_eq!(resp.clients.len(), 1);
+        assert_eq!(resp.clients[0].name, "My App");
+        mock.assert();
+    }
+
+    #[test]
+    fn test_oauth_clients_revoke_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("DELETE", "/oauth-clients/org-1/ll_client_abc")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"revoked": true}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.oauth_clients_revoke("org-1", "ll_client_abc").unwrap();
+        assert!(resp.revoked);
+        mock.assert();
+    }
+
+    #[test]
+    fn test_ai_pricing_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/ai/pricing")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"tiers": [{"id": "light", "name": "Light", "description": "Local LLMs", "cost": "Free", "models": [{"name": "qwen-3.5-9b", "type": "llm", "description": "Fast local LLM"}]}]}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.ai_pricing().unwrap();
+        assert_eq!(resp.tiers.len(), 1);
+        assert_eq!(resp.tiers[0].id, "light");
+        assert_eq!(resp.tiers[0].models[0].name, "qwen-3.5-9b");
+        mock.assert();
+    }
+
+    #[test]
+    fn test_deploy_backup_list_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/deploy/d-1/backups")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"backups": [{"name": "backup-2026-03-28.sql.gz", "size_bytes": 1024000, "created_at": "2026-03-28T10:00:00Z"}, {"name": "fresh.sql.gz", "size_bytes": 512, "is_template": true}]}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.deploy_backup_list("d-1").unwrap();
+        assert_eq!(resp.backups.len(), 2);
+        assert_eq!(resp.backups[1].is_template, Some(true));
+        mock.assert();
+    }
+
+    #[test]
+    fn test_deploy_backup_create_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", "/deploy/d-1/backups")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"name": "backup-2026-03-28.sql.gz", "size_bytes": 2048000}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.deploy_backup_create("d-1").unwrap();
+        assert!(resp.name.contains("backup"));
+        assert_eq!(resp.size_bytes, 2048000);
+        mock.assert();
+    }
+
+    #[test]
+    fn test_deploy_backup_restore_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", "/deploy/d-1/backups/backup-2026-03-28.sql.gz/restore")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"restoring": true, "backup": "backup-2026-03-28.sql.gz", "deployment_id": "d-1"}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client
+            .deploy_backup_restore("d-1", "backup-2026-03-28.sql.gz")
+            .unwrap();
+        assert!(resp.restoring);
+        mock.assert();
+    }
+
+    #[test]
+    fn test_deploy_backup_delete_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("DELETE", "/deploy/d-1/backups/old.sql.gz")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"deleted": true, "name": "old.sql.gz"}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.deploy_backup_delete("d-1", "old.sql.gz").unwrap();
+        assert!(resp.deleted);
+        mock.assert();
+    }
+
+    #[test]
+    fn test_deploy_versions_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/deploy/versions/api")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"versions": [{"name": "v2.4.0", "sha": "abc123def", "published_at": "2026-03-28", "prerelease": false}, {"name": "v2.5.0-beta", "sha": "def456abc", "prerelease": true}]}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.deploy_versions("api").unwrap();
+        assert_eq!(resp.versions.len(), 2);
+        assert_eq!(resp.versions[0].name, "v2.4.0");
+        assert_eq!(resp.versions[1].prerelease, Some(true));
+        mock.assert();
+    }
+
+    #[test]
+    fn test_org_member_update_role_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("PUT", "/organizations/org-1/members/u-1")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"updated": true, "user_id": "u-1", "role": "admin"}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.org_member_update_role("org-1", "u-1", "admin").unwrap();
+        assert!(resp.updated);
+        assert_eq!(resp.role, "admin");
+        mock.assert();
+    }
+
+    #[test]
+    fn test_org_invite_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("POST", "/organizations/org-1/invitations")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"id": "inv-1", "organization_id": "org-1", "email": "new@example.com", "role": "member", "expires_at": "2026-04-28T00:00:00Z", "claimed": false}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.org_invite("org-1", "new@example.com", "member").unwrap();
+        assert_eq!(resp.email, "new@example.com");
+        assert_eq!(resp.role, "member");
+        assert_eq!(resp.claimed, Some(false));
+        mock.assert();
+    }
+
+    #[test]
+    fn test_org_invites_list_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("GET", "/organizations/org-1/invitations")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"invites": [{"id": "inv-1", "organization_id": "org-1", "email": "a@b.com", "role": "admin", "claimed": false}]}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client.org_invites_list("org-1", true).unwrap();
+        assert_eq!(resp.invites.len(), 1);
+        assert_eq!(resp.invites[0].email, "a@b.com");
         mock.assert();
     }
 }
