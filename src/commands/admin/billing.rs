@@ -136,12 +136,7 @@ pub(crate) fn cmd_billing_pricing(client: &AdminClient, mode: OutputMode) -> Res
             } else {
                 String::new()
             };
-            println!(
-                "  {} — {}{}",
-                tier.name.bold(),
-                tier.price,
-                highlight
-            );
+            println!("  {} — {}{}", tier.name.bold(), tier.price, highlight);
             if let Some(unit) = &tier.unit {
                 print!("    per {}", unit);
                 if let Some(period) = &tier.billing_period {

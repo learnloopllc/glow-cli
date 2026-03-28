@@ -566,7 +566,9 @@ mod tests {
             .mock("POST", "/emulate")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(r#"{"allowed": true, "grant_id": "g-1", "expires_at": "2026-03-28T16:00:00Z"}"#)
+            .with_body(
+                r#"{"allowed": true, "grant_id": "g-1", "expires_at": "2026-03-28T16:00:00Z"}"#,
+            )
             .create();
 
         let client = GlowClient::new(&server.url());
@@ -641,7 +643,9 @@ mod tests {
             .create();
 
         let client = GlowClient::new(&server.url());
-        let resp = client.stream("personas", "create", None, None, None, None).unwrap();
+        let resp = client
+            .stream("personas", "create", None, None, None, None)
+            .unwrap();
         assert!(resp.status().is_success());
         mock.assert();
     }

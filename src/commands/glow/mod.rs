@@ -126,9 +126,7 @@ pub(crate) fn cmd_connect(client: &GlowClient, mode: OutputMode) -> Result<()> {
     output::print_result(mode, &response, |resp| {
         if let Some(sid) = resp.get("sid").and_then(|v| v.as_str()) {
             println!("{} Session created: {}", "OK".green().bold(), sid.bold());
-            println!(
-                "  Use with: glow stream --artifact <type> --operation <op>"
-            );
+            println!("  Use with: glow stream --artifact <type> --operation <op>");
             println!("  Destroy with: glow disconnect {}", sid);
         }
     });
@@ -140,7 +138,11 @@ pub(crate) fn cmd_disconnect(client: &GlowClient, sid: &str, mode: OutputMode) -
 
     let response = client.disconnect(sid)?;
     output::print_result(mode, &response, |_| {
-        println!("{} Session destroyed: {}", "OK".green().bold(), sid.dimmed());
+        println!(
+            "{} Session destroyed: {}",
+            "OK".green().bold(),
+            sid.dimmed()
+        );
     });
     Ok(())
 }

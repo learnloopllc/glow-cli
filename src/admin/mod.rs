@@ -482,11 +482,7 @@ impl AdminClient {
         )
     }
 
-    pub fn api_keys_usage(
-        &self,
-        org_id: &str,
-        days: u32,
-    ) -> Result<types::ApiKeyUsageResponse> {
+    pub fn api_keys_usage(&self, org_id: &str, days: u32) -> Result<types::ApiKeyUsageResponse> {
         api_request(
             &self.http,
             reqwest::Method::GET,
@@ -578,10 +574,7 @@ impl AdminClient {
 
     // ── Deploy: Backups ──────────────────────────────────────
 
-    pub fn deploy_backup_create(
-        &self,
-        deployment_id: &str,
-    ) -> Result<types::BackupInfo> {
+    pub fn deploy_backup_create(&self, deployment_id: &str) -> Result<types::BackupInfo> {
         api_request(
             &self.http,
             reqwest::Method::POST,
@@ -591,10 +584,7 @@ impl AdminClient {
         )
     }
 
-    pub fn deploy_backup_list(
-        &self,
-        deployment_id: &str,
-    ) -> Result<types::BackupsListResponse> {
+    pub fn deploy_backup_list(&self, deployment_id: &str) -> Result<types::BackupsListResponse> {
         api_request(
             &self.http,
             reqwest::Method::GET,
@@ -629,10 +619,7 @@ impl AdminClient {
         api_request(
             &self.http,
             reqwest::Method::DELETE,
-            &self.url(&format!(
-                "/deploy/{}/backups/{}",
-                deployment_id, filename
-            )),
+            &self.url(&format!("/deploy/{}/backups/{}", deployment_id, filename)),
             None,
             self.bearer_auth(),
         )
@@ -640,10 +627,7 @@ impl AdminClient {
 
     // ── Deploy: Versions ─────────────────────────────────────
 
-    pub fn deploy_versions(
-        &self,
-        component_type: &str,
-    ) -> Result<types::DeployVersionsResponse> {
+    pub fn deploy_versions(&self, component_type: &str) -> Result<types::DeployVersionsResponse> {
         api_request(
             &self.http,
             reqwest::Method::GET,
@@ -1097,7 +1081,12 @@ mod tests {
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client
-            .api_keys_create("org-1", Some("My Key"), Some(vec!["ai".into()]), Some(10000))
+            .api_keys_create(
+                "org-1",
+                Some("My Key"),
+                Some(vec!["ai".into()]),
+                Some(10000),
+            )
             .unwrap();
         assert_eq!(resp.name, "My Key");
         assert_eq!(resp.key, Some("ll_live_abc123xyz".into()));
@@ -1204,7 +1193,9 @@ mod tests {
             .create();
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
-        let resp = client.oauth_clients_revoke("org-1", "ll_client_abc").unwrap();
+        let resp = client
+            .oauth_clients_revoke("org-1", "ll_client_abc")
+            .unwrap();
         assert!(resp.revoked);
         mock.assert();
     }
@@ -1324,7 +1315,9 @@ mod tests {
             .create();
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
-        let resp = client.org_member_update_role("org-1", "u-1", "admin").unwrap();
+        let resp = client
+            .org_member_update_role("org-1", "u-1", "admin")
+            .unwrap();
         assert!(resp.updated);
         assert_eq!(resp.role, "admin");
         mock.assert();
@@ -1341,7 +1334,9 @@ mod tests {
             .create();
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
-        let resp = client.org_invite("org-1", "new@example.com", "member").unwrap();
+        let resp = client
+            .org_invite("org-1", "new@example.com", "member")
+            .unwrap();
         assert_eq!(resp.email, "new@example.com");
         assert_eq!(resp.role, "member");
         assert_eq!(resp.claimed, Some(false));

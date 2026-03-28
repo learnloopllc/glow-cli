@@ -21,11 +21,7 @@ pub(crate) fn cmd_oauth_clients_create(
             println!("  Redirects: {}", uris.join(", "));
         }
         if let Some(secret) = &r.client_secret {
-            println!(
-                "\n  {} {}",
-                "Secret:".bold(),
-                secret.yellow()
-            );
+            println!("\n  {} {}", "Secret:".bold(), secret.yellow());
             println!(
                 "  {}",
                 "Save this secret now — it won't be shown again.".dimmed()
@@ -44,11 +40,7 @@ pub(crate) fn cmd_oauth_clients_list(
 
     let resp = client.oauth_clients_list(org_id)?;
     output::print_result(mode, &resp, |r| {
-        println!(
-            "{} ({} total)\n",
-            "OAuth Clients".bold(),
-            r.clients.len()
-        );
+        println!("{} ({} total)\n", "OAuth Clients".bold(), r.clients.len());
         for c in &r.clients {
             println!(
                 "  {} {} [{}]",

@@ -344,10 +344,7 @@ pub(crate) fn cmd_deploy_backup_delete(
 ) -> Result<()> {
     use colored::Colorize;
 
-    if !output::confirm(
-        &format!("Delete backup '{}'?", filename),
-        yes,
-    ) {
+    if !output::confirm(&format!("Delete backup '{}'?", filename), yes) {
         println!("Aborted.");
         return Ok(());
     }

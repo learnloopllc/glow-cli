@@ -1192,9 +1192,7 @@ fn dispatch_admin(
                     let oid = require_org_id(org_id, &cfg)?;
                     admin_cmd::billing::cmd_billing_invoices(&ll, &oid, limit, mode)?
                 }
-                BillingCommands::Pricing => {
-                    admin_cmd::billing::cmd_billing_pricing(&ll, mode)?
-                }
+                BillingCommands::Pricing => admin_cmd::billing::cmd_billing_pricing(&ll, mode)?,
             }
         }
 
@@ -1208,9 +1206,8 @@ fn dispatch_admin(
                     spend_limit,
                 } => {
                     let oid = require_org_id(org_id, &cfg)?;
-                    let scope_vec = scopes.map(|s| {
-                        s.split(',').map(|v| v.trim().to_string()).collect()
-                    });
+                    let scope_vec =
+                        scopes.map(|s| s.split(',').map(|v| v.trim().to_string()).collect());
                     admin_cmd::api_keys::cmd_api_keys_create(
                         &ll,
                         &oid,
@@ -1263,9 +1260,8 @@ fn dispatch_admin(
                     redirect_uris,
                 } => {
                     let oid = require_org_id(org_id, &cfg)?;
-                    let uris = redirect_uris.map(|u| {
-                        u.split(',').map(|s| s.trim().to_string()).collect()
-                    });
+                    let uris =
+                        redirect_uris.map(|u| u.split(',').map(|s| s.trim().to_string()).collect());
                     admin_cmd::oauth_clients::cmd_oauth_clients_update(
                         &ll,
                         &oid,

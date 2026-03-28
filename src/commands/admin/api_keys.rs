@@ -19,11 +19,7 @@ pub(crate) fn cmd_api_keys_create(
         println!("  Name:   {}", r.name);
         println!("  Prefix: {}", r.key_prefix);
         if let Some(key) = &r.key {
-            println!(
-                "\n  {} {}",
-                "Key:".bold(),
-                key.yellow()
-            );
+            println!("\n  {} {}", "Key:".bold(), key.yellow());
             println!(
                 "  {}",
                 "Save this key now — it won't be shown again.".dimmed()

@@ -547,7 +547,13 @@ fn test_admin_oauth_clients_list_help() {
 fn test_admin_oauth_clients_create_requires_name() {
     Command::cargo_bin("glow")
         .unwrap()
-        .args(["admin", "oauth-clients", "create", "--redirect-uris", "https://app.com/cb"])
+        .args([
+            "admin",
+            "oauth-clients",
+            "create",
+            "--redirect-uris",
+            "https://app.com/cb",
+        ])
         .assert()
         .failure()
         .stderr(predicate::str::contains("--name"));
