@@ -192,9 +192,18 @@ jobs:
             $PRERELEASE
           echo "Created release $TAG"
 
+      - name: Generate app token for Homebrew tap
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.DEPLOY_APP_ID }}
+          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+          owner: learnloopllc
+          repositories: homebrew-tap
+
       - name: Update Homebrew tap
         env:
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           VERSION="${{ needs.release.outputs.version }}"
           TAG="${{ needs.release.outputs.tag }}"
