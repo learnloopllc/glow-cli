@@ -192,7 +192,9 @@ jobs:
             $PRERELEASE
           echo "Created release $TAG"
 
-      - name: Update Homebrew formula
+      - name: Update Homebrew tap
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           VERSION="${{ needs.release.outputs.version }}"
           TAG="${{ needs.release.outputs.tag }}"
@@ -203,65 +205,21 @@ jobs:
           SHA_LINUX=$(shasum -a 256 artifacts/glow-x86_64-unknown-linux-gnu.tar.gz | cut -d' ' -f1)
 
           if [ "$BRANCH" = "beta" ]; then
-            FORMULA="HomebrewFormula/glow-beta.rb"
-            CLASS_NAME="GlowBeta"
-            BIN_NAME="glow-beta"
-            BIN_ALIAS="glw-beta"
+            FORMULA="glow-beta"
           else
-            FORMULA="HomebrewFormula/glow.rb"
-            CLASS_NAME="Glow"
-            BIN_NAME="glow"
-            BIN_ALIAS="glw"
+            FORMULA="glow"
           fi
 
-          cat > "$FORMULA" << FORMULA_EOF
-          class ${CLASS_NAME} < Formula
-            desc "CLI for the Glow platform — manage instances, deployments, and resources"
-            homepage "https://github.com/learnloopllc/glow-cli"
-            version "${VERSION}"
-            license "MIT"
+          gh workflow run update-formula.yml \
+            -R learnloopllc/homebrew-tap \
+            -f formula="$FORMULA" \
+            -f version="$VERSION" \
+            -f tag="$TAG" \
+            -f sha_arm="$SHA_ARM" \
+            -f sha_x86_mac="$SHA_X86_MAC" \
+            -f sha_linux="$SHA_LINUX"
 
-            on_macos do
-              if Hardware::CPU.arm?
-                url "https://github.com/learnloopllc/glow-cli/releases/download/${TAG}/glow-aarch64-apple-darwin.tar.gz"
-                sha256 "${SHA_ARM}"
-              else
-                url "https://github.com/learnloopllc/glow-cli/releases/download/${TAG}/glow-x86_64-apple-darwin.tar.gz"
-                sha256 "${SHA_X86_MAC}"
-              end
-            end
-
-            on_linux do
-              url "https://github.com/learnloopllc/glow-cli/releases/download/${TAG}/glow-x86_64-unknown-linux-gnu.tar.gz"
-              sha256 "${SHA_LINUX}"
-            end
-
-            def install
-              bin.install "${BIN_NAME}"
-              bin.install "${BIN_ALIAS}"
-
-              generate_completions_from_executable(bin/"${BIN_NAME}", "completions")
-            end
-
-            test do
-              assert_match "Glow CLI", shell_output("#{bin}/${BIN_NAME} --help")
-              assert_match version.to_s, shell_output("#{bin}/${BIN_NAME} --version")
-              assert_match "Glow CLI", shell_output("#{bin}/${BIN_ALIAS} --help")
-            end
-          end
-          FORMULA_EOF
-
-          sed -i 's/^          //' "$FORMULA"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "$FORMULA"
-          if git diff --cached --quiet; then
-            echo "Formula already up to date"
-          else
-            git commit -m "chore: update Homebrew formula to ${TAG} [skip ci]"
-            git push origin HEAD:${BRANCH}
-          fi
+          echo "Dispatched formula update for $FORMULA $TAG to homebrew-tap"
 
       - name: Build and push Docker image
         run: |
