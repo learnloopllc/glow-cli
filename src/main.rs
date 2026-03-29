@@ -423,6 +423,38 @@ enum DeployCommands {
         #[arg(long)]
         airgapped: bool,
     },
+    /// Update deployment configuration
+    Update {
+        /// Deployment ID
+        id: String,
+        /// Subdomain
+        #[arg(long)]
+        subdomain: Option<String>,
+        /// Base domain
+        #[arg(long)]
+        base_domain: Option<String>,
+        /// Origin URL
+        #[arg(long)]
+        origin: Option<String>,
+        /// CORS client origins (comma-separated)
+        #[arg(long)]
+        client_origins: Option<String>,
+        /// App path prefix
+        #[arg(long)]
+        app_prefix: Option<String>,
+        /// Hosting type: hosted or self_hosted
+        #[arg(long)]
+        hosting_type: Option<String>,
+        /// Enable/disable airgapped mode
+        #[arg(long)]
+        airgapped: Option<bool>,
+        /// API key ID for AI gateway
+        #[arg(long)]
+        api_key_id: Option<String>,
+        /// OAuth client ID for authentication
+        #[arg(long)]
+        oauth_client_id: Option<String>,
+    },
     /// Check deployment status and workflow progress
     Status {
         /// Deployment ID
@@ -1124,6 +1156,31 @@ fn dispatch_admin(
                     }
                     admin_cmd::deploy::cmd_deploy_create_raw(&ll, body, mode)?
                 }
+                DeployCommands::Update {
+                    id,
+                    subdomain,
+                    base_domain,
+                    origin,
+                    client_origins,
+                    app_prefix,
+                    hosting_type,
+                    airgapped,
+                    api_key_id,
+                    oauth_client_id,
+                } => admin_cmd::deploy::cmd_deploy_update(
+                    &ll,
+                    &id,
+                    subdomain,
+                    base_domain,
+                    origin,
+                    client_origins,
+                    app_prefix,
+                    hosting_type,
+                    airgapped,
+                    api_key_id,
+                    oauth_client_id,
+                    mode,
+                )?,
                 DeployCommands::Status { id } => {
                     admin_cmd::deploy::cmd_deploy_status(&ll, &id, mode)?
                 }

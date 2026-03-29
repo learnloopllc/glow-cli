@@ -190,6 +190,20 @@ impl AdminClient {
         )
     }
 
+    pub fn deploy_update(
+        &self,
+        deployment_id: &str,
+        body: serde_json::Value,
+    ) -> Result<types::Deployment> {
+        api_request(
+            &self.http,
+            reqwest::Method::PUT,
+            &self.url(&format!("/deploy/{}", deployment_id)),
+            Some(body),
+            self.bearer_auth(),
+        )
+    }
+
     pub fn deploy_credentials(
         &self,
         deployment_id: &str,
@@ -1215,6 +1229,27 @@ mod tests {
         assert_eq!(resp.tiers.len(), 1);
         assert_eq!(resp.tiers[0].id, "light");
         assert_eq!(resp.tiers[0].models[0].name, "qwen-3.5-9b");
+        mock.assert();
+    }
+
+    #[test]
+    fn test_deploy_update_success() {
+        let mut server = mockito::Server::new();
+        let mock = server
+            .mock("PUT", "/deploy/d-1")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"id": "d-1", "name": "my-glow", "domain": "my.learn-loop.org", "status": "running", "client_origins": ["https://app1.learn-loop.org"]}"#)
+            .create();
+
+        let client = AdminClient::new_with_token(&server.url(), "tok");
+        let resp = client
+            .deploy_update(
+                "d-1",
+                serde_json::json!({"client_origins": ["https://app1.learn-loop.org"]}),
+            )
+            .unwrap();
+        assert_eq!(resp.name, Some("my-glow".into()));
         mock.assert();
     }
 

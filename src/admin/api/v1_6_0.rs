@@ -580,6 +580,10 @@ pub struct UpdateDeploymentRequest {
     pub hosting_type: Option<String>,
     #[serde(default)]
     pub airgapped: Option<bool>,
+    #[serde(default)]
+    pub api_key_id: Option<String>,
+    #[serde(default)]
+    pub oauth_client_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

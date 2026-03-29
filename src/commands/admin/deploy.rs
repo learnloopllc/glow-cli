@@ -2,6 +2,70 @@ use crate::admin::AdminClient;
 use crate::output::{self, OutputMode};
 use anyhow::Result;
 
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn cmd_deploy_update(
+    client: &AdminClient,
+    deployment_id: &str,
+    subdomain: Option<String>,
+    base_domain: Option<String>,
+    origin: Option<String>,
+    client_origins: Option<String>,
+    app_prefix: Option<String>,
+    hosting_type: Option<String>,
+    airgapped: Option<bool>,
+    api_key_id: Option<String>,
+    oauth_client_id: Option<String>,
+    mode: OutputMode,
+) -> Result<()> {
+    use colored::Colorize;
+
+    let mut body = serde_json::json!({});
+    let obj = body.as_object_mut().unwrap();
+    if let Some(v) = subdomain {
+        obj.insert("subdomain".into(), v.into());
+    }
+    if let Some(v) = base_domain {
+        obj.insert("base_domain".into(), v.into());
+    }
+    if let Some(v) = origin {
+        obj.insert("origin".into(), v.into());
+    }
+    if let Some(v) = client_origins {
+        let origins: Vec<&str> = v.split(',').map(|s| s.trim()).collect();
+        obj.insert("client_origins".into(), serde_json::json!(origins));
+    }
+    if let Some(v) = app_prefix {
+        obj.insert("app_prefix".into(), v.into());
+    }
+    if let Some(v) = hosting_type {
+        obj.insert("hosting_type".into(), v.into());
+    }
+    if let Some(v) = airgapped {
+        obj.insert("airgapped".into(), v.into());
+    }
+    if let Some(v) = api_key_id {
+        obj.insert("api_key_id".into(), v.into());
+    }
+    if let Some(v) = oauth_client_id {
+        obj.insert("oauth_client_id".into(), v.into());
+    }
+
+    if obj.is_empty() {
+        anyhow::bail!("No fields to update. Pass at least one --flag.");
+    }
+
+    let resp = client.deploy_update(deployment_id, body)?;
+    output::print_result(mode, &resp, |r| {
+        println!(
+            "{} Updated deployment {}",
+            "OK".green().bold(),
+            r.name.as_deref().unwrap_or(deployment_id).bold()
+        );
+        super::print_deployment(r);
+    });
+    Ok(())
+}
+
 pub(crate) fn cmd_deploy_create_raw(
     client: &AdminClient,
     body: serde_json::Value,

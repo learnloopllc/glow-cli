@@ -726,6 +726,28 @@ fn test_admin_deploy_versions_help() {
         .stdout(predicate::str::contains("versions"));
 }
 
+#[test]
+fn test_admin_deploy_update_help() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "deploy", "update", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--client-origins"))
+        .stdout(predicate::str::contains("--api-key-id"))
+        .stdout(predicate::str::contains("--oauth-client-id"));
+}
+
+#[test]
+fn test_admin_deploy_update_requires_id() {
+    Command::cargo_bin("glow")
+        .unwrap()
+        .args(["admin", "deploy", "update"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("ID"));
+}
+
 // ── Org member role + invites ─────────────────────────────────
 
 #[test]
