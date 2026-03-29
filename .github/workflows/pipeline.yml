@@ -125,14 +125,26 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../glow-${{ matrix.target }}.tar.gz glow glw
+          if [ "${{ github.ref_name }}" = "beta" ]; then
+            cp glow glow-beta
+            cp glw glw-beta
+            tar czf ../../../glow-${{ matrix.target }}.tar.gz glow-beta glw-beta
+          else
+            tar czf ../../../glow-${{ matrix.target }}.tar.gz glow glw
+          fi
           cd ../../..
 
       - name: Package (windows)
         if: runner.os == 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ../../../glow-${{ matrix.target }}.zip glow.exe glw.exe
+          if ("${{ github.ref_name }}" -eq "beta") {
+            Copy-Item glow.exe glow-beta.exe
+            Copy-Item glw.exe glw-beta.exe
+            7z a ../../../glow-${{ matrix.target }}.zip glow-beta.exe glw-beta.exe
+          } else {
+            7z a ../../../glow-${{ matrix.target }}.zip glow.exe glw.exe
+          }
           cd ../../..
 
       - uses: actions/upload-artifact@v4
@@ -157,8 +169,13 @@ jobs:
       - name: Generate cli-spec.json
         run: |
           tar xzf artifacts/glow-x86_64-unknown-linux-gnu.tar.gz -C /tmp
-          chmod +x /tmp/glow
-          /tmp/glow --dump-cli-spec > artifacts/cli-spec.json 2>/dev/null || echo '{}' > artifacts/cli-spec.json
+          if [ "${{ github.ref_name }}" = "beta" ]; then
+            BIN="/tmp/glow-beta"
+          else
+            BIN="/tmp/glow"
+          fi
+          chmod +x "$BIN"
+          "$BIN" --dump-cli-spec > artifacts/cli-spec.json 2>/dev/null || echo '{}' > artifacts/cli-spec.json
 
       - name: Create release
         env:
@@ -188,11 +205,13 @@ jobs:
           if [ "$BRANCH" = "beta" ]; then
             FORMULA="HomebrewFormula/glow-beta.rb"
             CLASS_NAME="GlowBeta"
-            CONFLICTS='conflicts_with "glow", because: "both install glow and glw binaries"'
+            BIN_NAME="glow-beta"
+            BIN_ALIAS="glw-beta"
           else
             FORMULA="HomebrewFormula/glow.rb"
             CLASS_NAME="Glow"
-            CONFLICTS='conflicts_with "glow-beta", because: "both install glow and glw binaries"'
+            BIN_NAME="glow"
+            BIN_ALIAS="glw"
           fi
 
           cat > "$FORMULA" << FORMULA_EOF
@@ -201,8 +220,6 @@ jobs:
             homepage "https://github.com/learnloopllc/glow-cli"
             version "${VERSION}"
             license "MIT"
-
-            ${CONFLICTS}
 
             on_macos do
               if Hardware::CPU.arm?
@@ -220,16 +237,16 @@ jobs:
             end
 
             def install
-              bin.install "glow"
-              bin.install "glw"
+              bin.install "${BIN_NAME}"
+              bin.install "${BIN_ALIAS}"
 
-              generate_completions_from_executable(bin/"glow", "completions")
+              generate_completions_from_executable(bin/"${BIN_NAME}", "completions")
             end
 
             test do
-              assert_match "Glow CLI", shell_output("#{bin}/glow --help")
-              assert_match version.to_s, shell_output("#{bin}/glow --version")
-              assert_match "Glow CLI", shell_output("#{bin}/glw --help")
+              assert_match "Glow CLI", shell_output("#{bin}/${BIN_NAME} --help")
+              assert_match version.to_s, shell_output("#{bin}/${BIN_NAME} --version")
+              assert_match "Glow CLI", shell_output("#{bin}/${BIN_ALIAS} --help")
             end
           end
           FORMULA_EOF
@@ -253,7 +270,11 @@ jobs:
           BRANCH="${{ github.ref_name }}"
 
           tar xzf artifacts/glow-x86_64-unknown-linux-gnu.tar.gz -C /tmp
-          cp /tmp/glow .
+          if [ "$BRANCH" = "beta" ]; then
+            cp /tmp/glow-beta ./glow
+          else
+            cp /tmp/glow .
+          fi
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker build --label "org.opencontainers.image.source=https://github.com/learnloopllc/glow-cli" -t ghcr.io/learnloopllc/glow-cli:${TAG} .
           docker push ghcr.io/learnloopllc/glow-cli:${TAG}
