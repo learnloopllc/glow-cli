@@ -682,12 +682,7 @@ impl AdminClient {
 
     // ── Org Invitations ──────────────────────────────────────
 
-    pub fn org_invite(
-        &self,
-        org_id: &str,
-        email: &str,
-        role: &str,
-    ) -> Result<serde_json::Value> {
+    pub fn org_invite(&self, org_id: &str, email: &str, role: &str) -> Result<serde_json::Value> {
         api_request(
             &self.http,
             reqwest::Method::POST,
@@ -697,11 +692,7 @@ impl AdminClient {
         )
     }
 
-    pub fn org_invites_list(
-        &self,
-        org_id: &str,
-        pending_only: bool,
-    ) -> Result<serde_json::Value> {
+    pub fn org_invites_list(&self, org_id: &str, pending_only: bool) -> Result<serde_json::Value> {
         let query = if !pending_only {
             "?pending_only=false"
         } else {

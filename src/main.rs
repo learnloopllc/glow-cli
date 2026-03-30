@@ -15,7 +15,6 @@ mod glow;
 mod output;
 mod resource;
 
-
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
 use output::OutputMode;
@@ -1376,11 +1375,7 @@ fn dispatch_admin(
 
 /// Dispatch generic resource commands: glow <resource> <action> [--body JSON] [extra args]
 /// Also handles media subcommands: glow <resource> <media_type> <action> [flags]
-fn dispatch_resource(
-    client: &glow::GlowClient,
-    args: &[String],
-    mode: OutputMode,
-) -> Result<()> {
+fn dispatch_resource(client: &glow::GlowClient, args: &[String], mode: OutputMode) -> Result<()> {
     if args.is_empty() {
         anyhow::bail!("Expected a resource name. Run 'glow --help' for usage.");
     }
@@ -1407,11 +1402,17 @@ fn dispatch_resource(
     // Show help for resource action
     if args[2..].iter().any(|a| a == "--help" || a == "-h") {
         use colored::Colorize;
-        println!("{}\n", format!("glow {} {}", resource.slug(), action).bold());
+        println!(
+            "{}\n",
+            format!("glow {} {}", resource.slug(), action).bold()
+        );
         println!("  {} /{}/{}\n", "POST".dimmed(), resource.slug(), action);
         println!("  Pass --key value pairs as needed. The API will validate parameters.\n");
         println!("{}:", "Options".bold());
-        println!("  {:<30} Raw JSON body (can combine with flags)", "--body <json>".green());
+        println!(
+            "  {:<30} Raw JSON body (can combine with flags)",
+            "--body <json>".green()
+        );
         println!("  {:<30} Output as JSON", "--json".green());
         return Ok(());
     }

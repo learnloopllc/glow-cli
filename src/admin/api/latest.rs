@@ -517,7 +517,8 @@ pub struct GatewayRateLimitEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GatewayRateLimits {
     pub description: String,
-    pub plans: std::collections::HashMap<String, std::collections::HashMap<String, GatewayRateLimitEntry>>,
+    pub plans:
+        std::collections::HashMap<String, std::collections::HashMap<String, GatewayRateLimitEntry>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

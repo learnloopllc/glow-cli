@@ -13,17 +13,31 @@ pub fn check_api_version(server_version: &str, pinned_version: &str, service_nam
     let server_parts: Vec<&str> = server_version.split('.').collect();
     let pinned_parts: Vec<&str> = pinned_version.split('.').collect();
 
-    let server_major = server_parts.first().and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
-    let server_minor = server_parts.get(1).and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
-    let pinned_major = pinned_parts.first().and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
-    let pinned_minor = pinned_parts.get(1).and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
+    let server_major = server_parts
+        .first()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(0);
+    let server_minor = server_parts
+        .get(1)
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(0);
+    let pinned_major = pinned_parts
+        .first()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(0);
+    let pinned_minor = pinned_parts
+        .get(1)
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(0);
 
     if server_major != pinned_major {
         eprintln!(
             "\u{26a0}\u{fe0f}  {} version mismatch: server={}, cli expects={}",
             service_name, server_version, pinned_version
         );
-        eprintln!("   Major version differs — some features may not work. Update with: brew upgrade glow");
+        eprintln!(
+            "   Major version differs — some features may not work. Update with: brew upgrade glow"
+        );
     } else if server_minor > pinned_minor {
         eprintln!(
             "\u{2139}\u{fe0f}  {} v{} is newer than CLI expects (v{}). Consider updating: brew upgrade glow",

@@ -36,7 +36,6 @@ pub(crate) fn cmd_usage(client: &AdminClient, org_id: &str, mode: OutputMode) ->
         if let Some(cost) = &r.estimated_cost {
             println!("  Estimated Cost:    {}", cost);
         }
-
     });
     Ok(())
 }

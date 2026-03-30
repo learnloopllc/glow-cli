@@ -19,7 +19,9 @@ pub struct ActivityRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActivityResources {
     #[serde(default)]
-    pub profiles: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub profiles: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12345,9 +12347,13 @@ pub struct PricingRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PricingResources {
     #[serde(default)]
-    pub agents: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub agents: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub models: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub models: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16131,29 +16137,53 @@ pub struct TestProgressEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TestResources {
     #[serde(default)]
-    pub evals: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub evals: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub rubrics: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub rubrics: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub agents: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub agents: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub models: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub models: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub voices: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub voices: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub temperature_levels: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub temperature_levels: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub reasoning_levels: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub reasoning_levels: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub modalities: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub modalities: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub prompts: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub prompts: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub instructions: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub instructions: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub tools: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub tools: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
     #[serde(default)]
-    pub qualities: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
+    pub qualities: Option<
+        std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>,
+    >,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
