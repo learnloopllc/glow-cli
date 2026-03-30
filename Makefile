@@ -2,15 +2,15 @@
 #
 # Quick reference:
 #   make                    → build debug
-#   make run health         → cargo run -- health (with debug logs)
-#   make run personas list  → cargo run -- personas list
-#   make run admin status   → cargo run -- admin status
+#   make run                → start CLI dev server on :9000
+#   make exec health        → cargo run -- health (with debug logs)
+#   make exec personas list → cargo run -- personas list
 #   make test               → run all tests
 #   make check              → fmt + clippy + test (same as CI)
 #   make release            → optimized build
 #   make install            → install to ~/.cargo/bin
 
-.PHONY: build run test test-unit test-integration fmt clippy check release install clean watch coverage help sync-types
+.PHONY: build run exec test test-unit test-integration fmt clippy check release install clean watch coverage help sync-types
 
 # Grab everything after the first word (the make target) as CLI args
 RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
@@ -19,8 +19,12 @@ RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 build:
 	cargo build
 
-# Run: make run health | make run personas list | make run admin status
+# Start the CLI dev server (serves CLI spec + exec endpoint)
 run:
+	cargo run -- serve --port 9000
+
+# Run a CLI command directly: make exec health | make exec personas list
+exec:
 	RUST_LOG=debug cargo run -- $(or $(RUN_ARGS),--help)
 
 # Run all tests

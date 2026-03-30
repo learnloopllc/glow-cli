@@ -14,6 +14,7 @@ mod config;
 mod glow;
 mod output;
 mod resource;
+mod serve;
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
@@ -145,6 +146,13 @@ enum Commands {
     Completions {
         /// Shell to generate completions for
         shell: clap_complete::Shell,
+    },
+
+    /// Start the CLI dev server (serves CLI spec + exec endpoint)
+    Serve {
+        /// Port to listen on
+        #[arg(long, default_value = "9000", env = "GLOW_CLI_PORT")]
+        port: u16,
     },
 
     /// Interact with a resource on the Glow instance (e.g. glow personas search)
@@ -722,6 +730,61 @@ fn dump_command_spec(cmd: &clap::Command) -> serde_json::Value {
     serde_json::Value::Object(obj)
 }
 
+/// Build the full CLI spec JSON (used by both --dump-cli-spec and the serve endpoint).
+pub fn build_cli_spec() -> serde_json::Value {
+    use serde_json::json;
+
+    let cmd = Cli::command();
+    let mut spec = dump_command_spec(&cmd);
+
+    if let Some(obj) = spec.as_object_mut() {
+        obj.insert("version".into(), json!(env!("CARGO_PKG_VERSION")));
+
+        let resources: Vec<serde_json::Value> = resource::Resource::all()
+            .iter()
+            .map(|r| json!({ "slug": r.slug(), "about": r.about() }))
+            .collect();
+        obj.insert("resources".into(), json!(resources));
+
+        let media_types: Vec<&str> = resource::MediaType::all_slugs().to_vec();
+        obj.insert("media_types".into(), json!(media_types));
+
+        obj.insert("media_actions".into(), json!([
+            { "name": "upload", "about": "Upload a file via multipart form", "args": [
+                { "name": "file", "long": "--file", "required": true, "help": "Path to file to upload" }
+            ]},
+            { "name": "download", "about": "Download a media file", "args": [
+                { "name": "id", "long": "--id", "required": true, "help": "Upload ID" },
+                { "name": "output", "long": "--output", "required": false, "help": "Output file path (stdout if omitted)" }
+            ]},
+            { "name": "create", "about": "Initiate a TUS resumable upload", "args": [
+                { "name": "filename", "long": "--filename", "required": true, "help": "Filename for the upload" },
+                { "name": "size", "long": "--size", "required": false, "help": "Total file size in bytes" }
+            ]},
+            { "name": "chunk", "about": "Upload a chunk for a TUS upload", "args": [
+                { "name": "id", "long": "--id", "required": true, "help": "Upload ID" },
+                { "name": "file", "long": "--file", "required": true, "help": "Path to chunk data" },
+                { "name": "offset", "long": "--offset", "required": false, "help": "Byte offset (default: 0)" }
+            ]},
+            { "name": "status", "about": "Check TUS upload status", "args": [
+                { "name": "id", "long": "--id", "required": true, "help": "Upload ID" }
+            ]},
+            { "name": "finalize", "about": "Finalize a TUS upload", "args": [
+                { "name": "id", "long": "--id", "required": true, "help": "Upload ID" },
+                { "name": "body", "long": "--body", "required": false, "help": "Optional JSON body" }
+            ]},
+            { "name": "discover", "about": "Discover available upload types", "args": [
+                { "name": "id", "long": "--id", "required": false, "help": "Optional upload ID" }
+            ]},
+            { "name": "preview", "about": "Preview a media file", "args": [
+                { "name": "id", "long": "--id", "required": true, "help": "Upload ID" }
+            ]}
+        ]));
+    }
+
+    spec
+}
+
 // ── Helpers ──────────────────────────────────────────────────
 
 /// Resolve org_id: explicit arg > config > error
@@ -744,58 +807,11 @@ fn resolve_glow_url(cli_url: Option<&str>, cfg: &config::Config) -> String {
 
 // ── Main ───────────────────────────────────────────────────────
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     // Hidden: dump CLI spec as JSON for docs generation
     if std::env::args().any(|a| a == "--dump-cli-spec") {
-        let cmd = Cli::command();
-        let mut spec = dump_command_spec(&cmd);
-
-        // Inject dynamic resource definitions (not captured by clap)
-        if let Some(obj) = spec.as_object_mut() {
-            use serde_json::json;
-
-            let resources: Vec<serde_json::Value> = resource::Resource::all()
-                .iter()
-                .map(|r| json!({ "slug": r.slug(), "about": r.about() }))
-                .collect();
-            obj.insert("resources".into(), json!(resources));
-
-            let media_types: Vec<&str> = resource::MediaType::all_slugs().to_vec();
-            obj.insert("media_types".into(), json!(media_types));
-
-            obj.insert("media_actions".into(), json!([
-                { "name": "upload", "about": "Upload a file via multipart form", "args": [
-                    { "name": "file", "long": "--file", "required": true, "help": "Path to file to upload" }
-                ]},
-                { "name": "download", "about": "Download a media file", "args": [
-                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" },
-                    { "name": "output", "long": "--output", "required": false, "help": "Output file path (stdout if omitted)" }
-                ]},
-                { "name": "create", "about": "Initiate a TUS resumable upload", "args": [
-                    { "name": "filename", "long": "--filename", "required": true, "help": "Filename for the upload" },
-                    { "name": "size", "long": "--size", "required": false, "help": "Total file size in bytes" }
-                ]},
-                { "name": "chunk", "about": "Upload a chunk for a TUS upload", "args": [
-                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" },
-                    { "name": "file", "long": "--file", "required": true, "help": "Path to chunk data" },
-                    { "name": "offset", "long": "--offset", "required": false, "help": "Byte offset (default: 0)" }
-                ]},
-                { "name": "status", "about": "Check TUS upload status", "args": [
-                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" }
-                ]},
-                { "name": "finalize", "about": "Finalize a TUS upload", "args": [
-                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" },
-                    { "name": "body", "long": "--body", "required": false, "help": "Optional JSON body" }
-                ]},
-                { "name": "discover", "about": "Discover available upload types", "args": [
-                    { "name": "id", "long": "--id", "required": false, "help": "Optional upload ID" }
-                ]},
-                { "name": "preview", "about": "Preview a media file", "args": [
-                    { "name": "id", "long": "--id", "required": true, "help": "Upload ID" }
-                ]}
-            ]));
-        }
-
+        let spec = build_cli_spec();
         println!("{}", serde_json::to_string_pretty(&spec)?);
         return Ok(());
     }
@@ -897,6 +913,10 @@ fn main() -> Result<()> {
         // ── Shell completions ────────────────────────────────
         Commands::Completions { shell } => {
             clap_complete::generate(shell, &mut Cli::command(), "glow", &mut std::io::stdout());
+        }
+
+        Commands::Serve { port } => {
+            serve::run(port).await?;
         }
 
         // ── Admin commands (LearnLoop management plane) ──────
