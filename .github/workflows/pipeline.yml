@@ -215,8 +215,12 @@ jobs:
 
           if [ "$BRANCH" = "beta" ]; then
             FORMULA="glow-beta"
+            BIN_NAME="glow-beta"
+            BIN_ALIAS="glw-beta"
           else
             FORMULA="glow"
+            BIN_NAME="glow"
+            BIN_ALIAS="glw"
           fi
 
           gh workflow run update-formula.yml \
@@ -224,6 +228,9 @@ jobs:
             -f formula="$FORMULA" \
             -f version="$VERSION" \
             -f tag="$TAG" \
+            -f repo="learnloopllc/glow-cli" \
+            -f bin_name="$BIN_NAME" \
+            -f bin_alias="$BIN_ALIAS" \
             -f sha_arm="$SHA_ARM" \
             -f sha_x86_mac="$SHA_X86_MAC" \
             -f sha_linux="$SHA_LINUX"
