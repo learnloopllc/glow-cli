@@ -6,7 +6,6 @@
 //
 // The CLI talks to both.
 
-mod admin; // kept for auth::cmd_instance_login/cmd_logout (instance auth)
 mod api_common;
 mod auth;
 mod commands;
@@ -288,15 +287,6 @@ pub fn build_cli_spec() -> serde_json::Value {
 
 // ── Helpers ──────────────────────────────────────────────────
 
-/// Resolve org_id: explicit arg > config > error
-fn require_org_id(explicit: Option<String>, cfg: &config::Config) -> Result<String> {
-    explicit.or_else(|| cfg.org_id.clone()).ok_or_else(|| {
-        anyhow::anyhow!(
-            "Organization ID required. Pass it as an argument, or run 'glow admin login' to set a default."
-        )
-    })
-}
-
 /// Resolve glow instance URL: --instance-url > active instance > glow_url config > default
 fn resolve_glow_url(cli_url: Option<&str>, cfg: &config::Config) -> String {
     cli_url
@@ -320,30 +310,15 @@ fn main() -> Result<()> {
     let cfg = config::Config::load()?;
     let mode = OutputMode::resolve(cli.json);
 
-    // Resolve URLs: CLI flag/env > config file > default
-    let api_url = config::resolve_option(
-        cli.api_url.as_deref(),
-        cfg.api_url.as_deref(),
-        "https://api.learn-loop.org",
-    );
-    let client_id = config::resolve_option(
-        cli.client_id.as_deref(),
-        cfg.client_id.as_deref(),
-        "api-client",
-    );
-
-    use commands::admin as admin_cmd;
     use commands::glow as glow_cmd;
 
     match cli.command {
         // ── Top-level Glow instance commands ─────────────────
         Commands::Login => {
-            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            admin_cmd::auth::cmd_instance_login(&glow_url, &api_url, mode)?
+            println!("TODO: instance login");
         }
         Commands::Logout => {
-            let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);
-            admin_cmd::auth::cmd_logout(&glow_url, mode)?
+            println!("TODO: instance logout");
         }
         Commands::Health => {
             let glow_url = resolve_glow_url(cli.instance_url.as_deref(), &cfg);

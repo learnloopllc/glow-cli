@@ -75,6 +75,7 @@ impl Config {
 }
 
 /// Resolve a value with priority: explicit (CLI/env) > config file > default
+#[allow(dead_code)]
 pub fn resolve_option(explicit: Option<&str>, config_val: Option<&str>, default: &str) -> String {
     explicit.or(config_val).unwrap_or(default).to_string()
 }

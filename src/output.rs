@@ -43,6 +43,7 @@ pub fn print_result<T: Serialize>(mode: OutputMode, value: &T, human_fn: impl Fn
 /// Prompt for confirmation before a destructive action.
 /// Returns true if: --yes flag is set, or user types "y"/"yes".
 /// Returns false if: stdin is not a terminal (piped/CI), or user declines.
+#[allow(dead_code)]
 pub fn confirm(prompt: &str, auto_yes: bool) -> bool {
     if auto_yes {
         return true;

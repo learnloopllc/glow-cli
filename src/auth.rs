@@ -25,10 +25,10 @@ use std::path::PathBuf;
 
 /// OIDC Discovery document (subset of fields we use)
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct OidcDiscovery {
     pub authorization_endpoint: String,
     pub token_endpoint: String,
-    #[allow(dead_code)]
     pub userinfo_endpoint: Option<String>,
 }
 
@@ -205,6 +205,7 @@ fn now_epoch() -> u64 {
 
 // ── OIDC Discovery ────────────────────────────────────────────
 
+#[allow(dead_code)]
 pub fn discover(server_url: &str) -> Result<OidcDiscovery> {
     let url = format!(
         "{}/.well-known/openid-configuration",
@@ -236,6 +237,7 @@ pub fn discover(server_url: &str) -> Result<OidcDiscovery> {
 // ── OAuth flow internals ──────────────────────────────────────
 
 /// Generate a random state parameter for CSRF protection
+#[allow(dead_code)]
 fn generate_state() -> String {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -251,6 +253,7 @@ fn generate_state() -> String {
 }
 
 /// Percent-encode a URL for use in a query parameter
+#[allow(dead_code)]
 fn percent_encode(s: &str) -> String {
     let mut out = String::with_capacity(s.len() * 2);
     for byte in s.bytes() {
@@ -267,6 +270,7 @@ fn percent_encode(s: &str) -> String {
 }
 
 /// Start a temporary HTTP server on a random port
+#[allow(dead_code)]
 fn start_callback_server() -> Result<(TcpListener, String)> {
     let listener =
         TcpListener::bind("127.0.0.1:0").context("Failed to bind callback server on localhost.")?;
@@ -276,6 +280,7 @@ fn start_callback_server() -> Result<(TcpListener, String)> {
 }
 
 /// Wait for the OAuth callback. Returns the authorization code.
+#[allow(dead_code)]
 fn wait_for_callback(listener: &TcpListener, expected_state: &str) -> Result<String> {
     let (mut stream, _) = listener
         .accept()
@@ -338,6 +343,7 @@ fn wait_for_callback(listener: &TcpListener, expected_state: &str) -> Result<Str
 }
 
 /// Send a minimal HTML response back to the browser
+#[allow(dead_code)]
 fn send_html(stream: &mut std::net::TcpStream, body: &str) {
     let html = format!(
         "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Glow</title>\
@@ -355,6 +361,7 @@ fn send_html(stream: &mut std::net::TcpStream, body: &str) {
 }
 
 /// Exchange an authorization code for tokens
+#[allow(dead_code)]
 fn exchange_code(
     token_endpoint: &str,
     code: &str,
@@ -397,11 +404,13 @@ fn exchange_code(
 
 /// Run the full OAuth login flow for a given server.
 /// Works for both the LearnLoop API and any Glow instance.
+#[allow(dead_code)]
 pub fn login(server_url: &str, client_id: &str) -> Result<StoredToken> {
     login_with_secret(server_url, client_id, None)
 }
 
 /// Run the full OAuth login flow, optionally with a client secret.
+#[allow(dead_code)]
 pub fn login_with_secret(
     server_url: &str,
     client_id: &str,
@@ -462,6 +471,7 @@ pub fn login_with_secret(
 }
 
 /// List all servers the user is logged into
+#[allow(dead_code)]
 pub fn list_sessions() -> Result<Vec<(String, StoredToken)>> {
     let store = load_token_store()?;
     let mut sessions: Vec<_> = store.tokens.into_iter().collect();
