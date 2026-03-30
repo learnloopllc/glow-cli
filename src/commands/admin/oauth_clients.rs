@@ -17,16 +17,14 @@ pub(crate) fn cmd_oauth_clients_create(
         println!("  ID:        {}", r.id.dimmed());
         println!("  Client ID: {}", r.client_id);
         println!("  Name:      {}", r.name);
-        if let Some(uris) = &r.redirect_uris {
-            println!("  Redirects: {}", uris.join(", "));
+        if !r.redirect_uris.is_empty() {
+            println!("  Redirects: {}", r.redirect_uris.join(", "));
         }
-        if let Some(secret) = &r.client_secret {
-            println!("\n  {} {}", "Secret:".bold(), secret.yellow());
-            println!(
-                "  {}",
-                "Save this secret now — it won't be shown again.".dimmed()
-            );
-        }
+        println!("\n  {} {}", "Secret:".bold(), r.client_secret.yellow());
+        println!(
+            "  {}",
+            "Save this secret now — it won't be shown again.".dimmed()
+        );
     });
     Ok(())
 }
@@ -48,8 +46,8 @@ pub(crate) fn cmd_oauth_clients_list(
                 c.name.bold(),
                 c.client_id.dimmed()
             );
-            if let Some(uris) = &c.redirect_uris {
-                println!("    Redirects: {}", uris.join(", "));
+            if !c.redirect_uris.is_empty() {
+                println!("    Redirects: {}", c.redirect_uris.join(", "));
             }
             if let Some(scopes) = &c.scopes {
                 println!("    Scopes:    {}", scopes.join(", "));

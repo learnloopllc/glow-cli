@@ -57,28 +57,33 @@ pub(crate) fn cmd_status(api_url: &str, mode: OutputMode) -> Result<()> {
         config_exists: bool,
         api_url: String,
         api_status: String,
+        api_version: Option<String>,
     }
 
     let config_path = config::Config::config_path();
     let config_exists = config_path.exists();
 
-    let http = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(3))
-        .build()?;
-
-    let api_status = match http.get(format!("{}/health", api_url)).send() {
-        Ok(r) if r.status().is_success() => "connected",
-        _ => match http.get(api_url).send() {
-            Ok(r) if r.status().is_success() => "connected",
-            _ => "unreachable",
-        },
+    // Use AdminClient.health() to get status + version in one call
+    let ll = crate::admin::AdminClient::new(api_url);
+    let (api_status, api_version) = match ll.health() {
+        Ok(root) => {
+            // Check version compatibility
+            crate::api_common::check_api_version(
+                &root.version,
+                crate::admin::types::PINNED_API_VERSION,
+                "LearnLoop API",
+            );
+            ("connected".to_string(), Some(root.version))
+        }
+        _ => ("unreachable".to_string(), None),
     };
 
     let report = StatusReport {
         config_file: config_path.display().to_string(),
         config_exists,
         api_url: api_url.to_string(),
-        api_status: api_status.to_string(),
+        api_status,
+        api_version,
     };
 
     output::print_result(mode, &report, |r| {
@@ -101,6 +106,9 @@ pub(crate) fn cmd_status(api_url: &str, mode: OutputMode) -> Result<()> {
                 "unreachable".red().to_string()
             }
         );
+        if let Some(ref v) = r.api_version {
+            println!("  API Version: {}", v.dimmed());
+        }
     });
     Ok(())
 }

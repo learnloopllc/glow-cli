@@ -1,8 +1,26 @@
-// Auto-generated from learnloop-api OpenAPI spec v1.6.0
+// Auto-generated from LearnLoop API OpenAPI spec v2.0.8
 // Do not edit manually — regenerated on each API release.
 // Schemas: 95
 
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIModelEntry {
+    pub id: String,
+    #[serde(default)]
+    pub object: Option<String>,
+    #[serde(default)]
+    pub created: Option<i64>,
+    #[serde(default)]
+    pub owned_by: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIModelsResponse {
+    pub data: Vec<AIModelEntry>,
+    #[serde(default)]
+    pub object: Option<String>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddMemberRequest {
@@ -24,6 +42,49 @@ pub struct AdminStatsResponse {
     pub running_deployments: i64,
     pub total_simulations: i64,
     pub organizations_by_plan: std::collections::HashMap<String, i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiKeyCreateResponse {
+    pub id: String,
+    pub key: String,
+    pub name: String,
+    pub key_prefix: String,
+    pub scopes: Vec<String>,
+    #[serde(default)]
+    pub spend_limit_cents: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiKeyListResponse {
+    pub keys: Vec<ApiKeyResponse>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiKeyResponse {
+    pub id: String,
+    pub name: String,
+    pub key_prefix: String,
+    pub scopes: Vec<String>,
+    #[serde(default)]
+    pub key: Option<String>,
+    #[serde(default)]
+    pub spend_limit_cents: Option<i64>,
+    #[serde(default)]
+    pub spent_cents: Option<i64>,
+    #[serde(default)]
+    pub active: Option<bool>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub expires_at: Option<String>,
+    #[serde(default)]
+    pub last_used_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiKeyRevokeResponse {
+    pub revoked: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,6 +114,11 @@ pub struct AuthMeResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthorizeCodeResponse {
+    pub code: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthorizeRequest {
     pub user_id: String,
     pub email: String,
@@ -72,7 +138,7 @@ pub struct BackupInfo {
     pub name: String,
     pub size_bytes: i64,
     #[serde(default)]
-    pub created_at: Option<String>,
+    pub created_at: Option<serde_json::Value>,
     #[serde(default)]
     pub is_template: Option<bool>,
 }
@@ -107,11 +173,52 @@ pub struct BillingStatusResponse {
 pub struct Body_token_token_post {
     pub grant_type: String,
     pub code: String,
+    #[serde(default)]
+    pub client_id: Option<String>,
+    #[serde(default)]
+    pub client_secret: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Body_upload_backup_deploy__deployment_id__backups_upload_post {
     pub file: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatCompletionChoice {
+    pub index: i64,
+    pub message: ChatCompletionMessage,
+    #[serde(default)]
+    pub finish_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatCompletionMessage {
+    pub role: String,
+    #[serde(default)]
+    pub content: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatCompletionResponse {
+    pub id: String,
+    pub created: i64,
+    pub model: String,
+    pub choices: Vec<ChatCompletionChoice>,
+    #[serde(default)]
+    pub object: Option<String>,
+    #[serde(default)]
+    pub usage: Option<ChatCompletionUsage>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatCompletionUsage {
+    #[serde(default)]
+    pub prompt_tokens: Option<i64>,
+    #[serde(default)]
+    pub completion_tokens: Option<i64>,
+    #[serde(default)]
+    pub total_tokens: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,17 +241,6 @@ pub struct CheckoutResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaimRequest {
     pub token: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompatCheckResponse {
-    pub compatible: bool,
-    pub current_version: String,
-    pub status: String,
-    pub latest_version: String,
-    pub min_supported: String,
-    #[serde(default)]
-    pub message: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -173,6 +269,26 @@ pub struct ContainerMetrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateApiKeyRequest {
+    pub organization_id: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub scopes: Option<Vec<String>>,
+    #[serde(default)]
+    pub spend_limit_cents: Option<i64>,
+    #[serde(default)]
+    pub environment: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateOAuthClientRequest {
+    pub organization_id: String,
+    pub name: String,
+    pub redirect_uris: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateOrganizationRequest {
     pub name: String,
     #[serde(default)]
@@ -185,12 +301,6 @@ pub struct DailyUsageEntry {
     pub organization_id: String,
     pub usage_date: serde_json::Value,
     pub simulation_count: i64,
-    #[serde(default)]
-    pub attempts_started: Option<i64>,
-    #[serde(default)]
-    pub attempts_completed: Option<i64>,
-    #[serde(default)]
-    pub outcomes: Option<i64>,
     #[serde(default)]
     pub created_at: Option<String>,
     #[serde(default)]
@@ -263,9 +373,9 @@ pub struct DeployRequest {
     pub organization_id: String,
     pub deployment_name: String,
     pub subdomain: String,
+    pub version: String,
     #[serde(default)]
     pub base_domain: Option<String>,
-    pub version: String,
     #[serde(default)]
     pub component_type: Option<String>,
     #[serde(default)]
@@ -282,6 +392,10 @@ pub struct DeployRequest {
     pub hosting_type: Option<String>,
     #[serde(default)]
     pub airgapped: Option<bool>,
+    #[serde(default)]
+    pub api_key_id: Option<String>,
+    #[serde(default)]
+    pub oauth_client_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -350,6 +464,8 @@ pub struct DeploymentResponse {
     #[serde(default)]
     pub parent_deployment_id: Option<String>,
     #[serde(default)]
+    pub github_repo_name: Option<String>,
+    #[serde(default)]
     pub version: Option<String>,
     #[serde(default)]
     pub origin: Option<String>,
@@ -362,11 +478,55 @@ pub struct DeploymentResponse {
     #[serde(default)]
     pub airgapped: Option<bool>,
     #[serde(default)]
+    pub api_key_id: Option<String>,
+    #[serde(default)]
+    pub oauth_client_id: Option<String>,
+    #[serde(default)]
     pub active: Option<bool>,
     #[serde(default)]
     pub created_at: Option<String>,
     #[serde(default)]
     pub updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GatewayModelInfo {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub r#type: String,
+    #[serde(default)]
+    pub params: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub provider: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GatewayPricingResponse {
+    pub tiers: Vec<GatewayTier>,
+    pub rate_limits: GatewayRateLimits,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GatewayRateLimitEntry {
+    pub rpm: i64,
+    pub rpd: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GatewayRateLimits {
+    pub description: String,
+    pub plans: std::collections::HashMap<String, std::collections::HashMap<String, GatewayRateLimitEntry>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GatewayTier {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub cost: String,
+    pub models: Vec<GatewayModelInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -376,50 +536,15 @@ pub struct HTTPValidationError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InviteAcceptResponse {
-    pub accepted: bool,
-    pub organization_id: String,
-    pub organization_name: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InviteListResponse {
-    pub invites: Vec<InviteResponse>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InviteMemberRequest {
-    pub email: String,
-    #[serde(default)]
-    pub role: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InviteResponse {
-    pub id: String,
-    pub organization_id: String,
-    pub email: String,
-    pub role: String,
-    #[serde(default)]
-    pub token: Option<String>,
-    #[serde(default)]
-    pub expires_at: Option<String>,
-    #[serde(default)]
-    pub claimed: Option<bool>,
-    #[serde(default)]
-    pub created_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InvoiceInfo {
     pub id: String,
+    pub amount_due: i64,
+    pub amount_paid: i64,
+    pub currency: String,
     #[serde(default)]
     pub number: Option<String>,
     #[serde(default)]
     pub status: Option<String>,
-    pub amount_due: i64,
-    pub amount_paid: i64,
-    pub currency: String,
     #[serde(default)]
     pub period_start: Option<String>,
     #[serde(default)]
@@ -435,6 +560,22 @@ pub struct InvoiceInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InvoicesResponse {
     pub invoices: Vec<InvoiceInfo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JWKEntry {
+    pub kty: String,
+    #[serde(rename = "use")]
+    pub r#use: String,
+    pub alg: String,
+    pub kid: String,
+    pub n: String,
+    pub e: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JWKSResponse {
+    pub keys: Vec<JWKEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -454,6 +595,63 @@ pub struct MemberResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OAuthClientCreateResponse {
+    pub id: String,
+    pub client_id: String,
+    pub client_secret: String,
+    pub name: String,
+    pub redirect_uris: Vec<String>,
+    pub scopes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OAuthClientListResponse {
+    pub clients: Vec<OAuthClientResponse>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OAuthClientResponse {
+    pub id: String,
+    pub client_id: String,
+    pub name: String,
+    pub redirect_uris: Vec<String>,
+    #[serde(default)]
+    pub client_secret_prefix: Option<String>,
+    #[serde(default)]
+    pub scopes: Option<Vec<String>>,
+    #[serde(default)]
+    pub active: Option<bool>,
+    #[serde(default)]
+    pub organization_id: Option<String>,
+    #[serde(default)]
+    pub created_by: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OAuthClientRevokeResponse {
+    pub revoked: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OIDCDiscoveryResponse {
+    pub issuer: String,
+    pub authorization_endpoint: String,
+    pub token_endpoint: String,
+    pub userinfo_endpoint: String,
+    pub jwks_uri: String,
+    pub response_types_supported: Vec<String>,
+    pub grant_types_supported: Vec<String>,
+    pub subject_types_supported: Vec<String>,
+    pub id_token_signing_alg_values_supported: Vec<String>,
+    pub scopes_supported: Vec<String>,
+    pub token_endpoint_auth_methods_supported: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrgUsageResponse {
     pub total_simulations: i64,
     pub total_days_active: i64,
@@ -461,8 +659,6 @@ pub struct OrgUsageResponse {
     pub plan: Option<String>,
     #[serde(default)]
     pub estimated_cost: Option<String>,
-    #[serde(default)]
-    pub meta: Option<OrgUsageMeta>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -532,22 +728,32 @@ pub struct PricingTier {
     pub id: String,
     pub name: String,
     pub price: String,
+    pub description: String,
+    pub cta: String,
     #[serde(default)]
     pub unit: Option<String>,
     #[serde(default)]
     pub billing_period: Option<String>,
-    pub description: String,
-    pub cta: String,
     #[serde(default)]
     pub highlighted: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProvisionClaimResponse {
-    pub token: String,
-    #[serde(rename = "type")]
-    pub r#type: String,
-    pub exp: i64,
+    pub deployment_token: String,
+    pub org_id: String,
+    #[serde(default)]
+    pub deployment_id: Option<String>,
+    #[serde(default)]
+    pub plan: Option<String>,
+    #[serde(default)]
+    pub secret_key: Option<String>,
+    #[serde(default)]
+    pub auth_secret: Option<String>,
+    #[serde(default)]
+    pub auth_config: Option<serde_json::Value>,
+    #[serde(default)]
+    pub ai_config: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -560,6 +766,14 @@ pub struct RootResponse {
     pub service: String,
     pub version: String,
     pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenResponse {
+    pub access_token: String,
+    pub id_token: String,
+    pub token_type: String,
+    pub expires_in: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -599,6 +813,14 @@ pub struct UpdateMemberRoleResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateOAuthClientRequest {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub redirect_uris: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateOrganizationRequest {
     #[serde(default)]
     pub name: Option<String>,
@@ -614,14 +836,20 @@ pub struct UsageCheckRequest {
     pub current_hash: String,
     #[serde(default)]
     pub attempts_since_last_check: Option<i64>,
+    #[serde(default)]
+    pub started: Option<i64>,
+    #[serde(default)]
+    pub completed: Option<i64>,
+    #[serde(default)]
+    pub passed: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UsageCheckResponse {
     pub authorized: bool,
+    pub num_to_next_check: i64,
     #[serde(default)]
     pub num_left: Option<i64>,
-    pub num_to_next_check: i64,
     #[serde(default)]
     pub message: Option<String>,
     #[serde(default)]
@@ -633,9 +861,9 @@ pub struct UsageEntryResponse {
     pub id: String,
     pub organization_id: String,
     pub entry_hash: String,
+    pub simulation_count: i64,
     #[serde(default)]
     pub previous_hash: Option<String>,
-    pub simulation_count: i64,
     #[serde(default)]
     pub reported_to_stripe: Option<bool>,
     #[serde(default)]
@@ -668,8 +896,15 @@ pub struct UsageSummaryResponse {
     pub daily_limit: Option<i64>,
     #[serde(default)]
     pub estimated_cost: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserinfoResponse {
+    pub sub: String,
     #[serde(default)]
-    pub meta: Option<OrgUsageMeta>,
+    pub email: Option<String>,
+    #[serde(default)]
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -688,11 +923,19 @@ pub struct VersionInfo {
     pub published_at: Option<String>,
     #[serde(default)]
     pub prerelease: Option<bool>,
+    #[serde(default)]
+    pub compat: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionUpdateRequest {
     pub version: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebhookResponse {
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -711,143 +954,4 @@ pub struct WorkflowRunResponse {
     pub created_at: Option<String>,
     #[serde(default)]
     pub updated_at: Option<String>,
-}
-
-// ── API Keys ─────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateApiKeyRequest {
-    pub organization_id: String,
-    #[serde(default)]
-    pub name: Option<String>,
-    #[serde(default)]
-    pub scopes: Option<Vec<String>>,
-    #[serde(default)]
-    pub spend_limit_cents: Option<i64>,
-    #[serde(default)]
-    pub environment: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiKeyResponse {
-    pub id: String,
-    #[serde(default)]
-    pub key: Option<String>,
-    pub name: String,
-    pub key_prefix: String,
-    #[serde(default)]
-    pub scopes: Option<Vec<String>>,
-    #[serde(default)]
-    pub spend_limit_cents: Option<i64>,
-    #[serde(default)]
-    pub created_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiKeyListResponse {
-    pub keys: Vec<ApiKeyResponse>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiKeyRevokeResponse {
-    pub revoked: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiKeyUsageResponse {
-    pub total_requests: i64,
-    pub total_tokens: i64,
-    pub total_cost_cents: i64,
-    #[serde(default)]
-    pub by_model: Option<serde_json::Value>,
-}
-
-// ── OAuth Clients ────────────────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateOAuthClientRequest {
-    pub organization_id: String,
-    pub name: String,
-    pub redirect_uris: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OAuthClientResponse {
-    pub id: String,
-    pub client_id: String,
-    #[serde(default)]
-    pub client_secret: Option<String>,
-    pub name: String,
-    #[serde(default)]
-    pub redirect_uris: Option<Vec<String>>,
-    #[serde(default)]
-    pub scopes: Option<Vec<String>>,
-    #[serde(default)]
-    pub created_at: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OAuthClientListResponse {
-    pub clients: Vec<OAuthClientResponse>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateOAuthClientRequest {
-    #[serde(default)]
-    pub name: Option<String>,
-    #[serde(default)]
-    pub redirect_uris: Option<Vec<String>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OAuthClientRevokeResponse {
-    pub revoked: bool,
-}
-
-// ── AI Gateway ───────────────────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AiModelInfo {
-    pub name: String,
-    #[serde(rename = "type")]
-    pub model_type: String,
-    #[serde(default)]
-    pub params: Option<String>,
-    pub description: String,
-    #[serde(default)]
-    pub provider: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AiTier {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub cost: String,
-    pub models: Vec<AiModelInfo>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AiPricingResponse {
-    pub tiers: Vec<AiTier>,
-    #[serde(default)]
-    pub rate_limits: Option<serde_json::Value>,
-}
-
-// ── Org Usage (outcome-based) ────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OrgUsageMeta {
-    #[serde(default)]
-    pub total_outcomes: Option<i64>,
-    #[serde(default)]
-    pub attempts_completed: Option<i64>,
-    #[serde(default)]
-    pub discount_pct: Option<i64>,
-    #[serde(default)]
-    pub gross: Option<String>,
-    #[serde(default)]
-    pub discount: Option<String>,
-    #[serde(default)]
-    pub net: Option<String>,
 }

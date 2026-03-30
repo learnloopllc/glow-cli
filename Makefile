@@ -10,7 +10,7 @@
 #   make release            → optimized build
 #   make install            → install to ~/.cargo/bin
 
-.PHONY: build run test test-unit test-integration fmt clippy check release install clean watch coverage help
+.PHONY: build run test test-unit test-integration fmt clippy check release install clean watch coverage help sync-types
 
 # Grab everything after the first word (the make target) as CLI args
 RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
@@ -55,6 +55,27 @@ release:
 # Install both binaries to ~/.cargo/bin
 install:
 	cargo install --path .
+
+# ── Type Generation ────────────────────────────────────────
+# Regenerate Rust types from live API servers.
+# Requires both servers running: learnloop-api (8100) and glow-api (8000).
+ADMIN_API_URL ?= http://localhost:8100
+GLOW_API_URL  ?= http://localhost:8000
+PYTHON        ?= python3.11
+
+sync-types: ## Fetch OpenAPI specs and regenerate Rust types from both servers
+	@echo "Generating admin types from $(ADMIN_API_URL)..."
+	@$(PYTHON) scripts/generate-rust-types.py --url $(ADMIN_API_URL) --output src/admin/api/latest.rs
+	@echo "Generating glow types from $(GLOW_API_URL)..."
+	@$(PYTHON) scripts/generate-rust-types.py --url $(GLOW_API_URL) --output src/glow/api/latest.rs
+	@echo "{\"platform-api\":{\"version\":\"$$(curl -sf $(ADMIN_API_URL)/ | jq -r .version)\",\"synced_at\":\"$$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)\"},\"glow-api\":{\"version\":\"$$(curl -sf $(GLOW_API_URL)/ | jq -r .version)\",\"synced_at\":\"$$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)\"}}" | jq . > api-versions.json
+	@echo "✅ Types updated. Run 'cargo build' to check for breaking changes."
+
+sync-types-admin: ## Regenerate admin types only
+	@$(PYTHON) scripts/generate-rust-types.py --url $(ADMIN_API_URL) --output src/admin/api/latest.rs
+
+sync-types-glow: ## Regenerate glow types only
+	@$(PYTHON) scripts/generate-rust-types.py --url $(GLOW_API_URL) --output src/glow/api/latest.rs
 
 # Remove build artifacts
 clean:

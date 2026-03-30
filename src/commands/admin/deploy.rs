@@ -354,7 +354,7 @@ pub(crate) fn cmd_deploy_backup_list(
             } else {
                 String::new()
             };
-            let ts = b.created_at.as_deref().unwrap_or("");
+            let ts = b.created_at.as_ref().and_then(|v| v.as_str()).unwrap_or("");
             println!(
                 "  {} {} bytes  {}{}",
                 b.name.bold(),

@@ -37,33 +37,6 @@ pub(crate) fn cmd_usage(client: &AdminClient, org_id: &str, mode: OutputMode) ->
             println!("  Estimated Cost:    {}", cost);
         }
 
-        // Outcome-based pricing details
-        if let Some(meta) = &r.meta {
-            println!("\n{}", "  Outcome-Based Pricing".bold());
-            if let Some(outcomes) = meta.total_outcomes {
-                println!("    Outcomes (passed): {}", outcomes);
-            }
-            if let Some(completed) = meta.attempts_completed {
-                println!("    Attempts Completed: {}", completed);
-            }
-            if let Some(pct) = meta.discount_pct {
-                let color = if pct > 0 {
-                    format!("{}%", pct).green().to_string()
-                } else {
-                    format!("{}%", pct).dimmed().to_string()
-                };
-                println!("    Performance Discount: {}", color);
-            }
-            if let Some(gross) = &meta.gross {
-                println!("    Gross:    {}", gross);
-            }
-            if let Some(discount) = &meta.discount {
-                println!("    Discount: {}", discount.green());
-            }
-            if let Some(net) = &meta.net {
-                println!("    Net:      {}", net.bold());
-            }
-        }
     });
     Ok(())
 }
@@ -89,17 +62,7 @@ pub(crate) fn cmd_usage_daily(
                 serde_json::Value::String(s) => s.clone(),
                 other => other.to_string(),
             };
-            print!("  {} — {} sims", date.bold(), entry.simulation_count);
-            if let Some(started) = entry.attempts_started {
-                print!(", {} started", started);
-            }
-            if let Some(completed) = entry.attempts_completed {
-                print!(", {} completed", completed);
-            }
-            if let Some(outcomes) = entry.outcomes {
-                print!(", {} passed", outcomes.to_string().green());
-            }
-            println!();
+            println!("  {} — {} sims", date.bold(), entry.simulation_count);
         }
     });
     Ok(())

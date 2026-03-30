@@ -1,6 +1,6 @@
-// Auto-generated from glow-api OpenAPI spec v0.4.0
+// Auto-generated from GLOW API OpenAPI spec v2.6.0
 // Do not edit manually — regenerated on each API release.
-// Schemas: 1210
+// Schemas: 1206
 
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +19,7 @@ pub struct ActivityRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActivityResources {
     #[serde(default)]
-    pub profiles: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub profiles: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,10 +100,6 @@ pub struct AgentDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentDraftFormState {
-    #[serde(default)]
-    pub name_id: Option<String>,
-    #[serde(default)]
-    pub description_id: Option<String>,
     pub flag_ids: Vec<String>,
     pub department_ids: Vec<String>,
     pub model_ids: Vec<String>,
@@ -112,6 +108,10 @@ pub struct AgentDraftFormState {
     pub temperature_level_ids: Vec<String>,
     pub voice_ids: Vec<String>,
     pub rubric_ids: Vec<String>,
+    #[serde(default)]
+    pub name_id: Option<String>,
+    #[serde(default)]
+    pub description_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -281,9 +281,9 @@ pub struct AgentReasoningLevelSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub agent_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<AgentFieldError>>,
 }
@@ -547,7 +547,7 @@ pub struct AttemptAssistantCompleteEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttemptAssistantHintsEvent {
     pub chat_id: String,
-    pub hints: Vec<serde_json::Value>,
+    pub hints: Vec<std::collections::HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -676,12 +676,12 @@ pub struct AttemptEntriesOutput {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttemptErrorEvent {
+    pub message: String,
     #[serde(default)]
     pub chat_id: Option<String>,
     #[serde(rename = "type")]
     #[serde(default)]
     pub r#type: Option<String>,
-    pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -705,9 +705,9 @@ pub struct AttemptGradeFeedbackEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttemptGradeHighlightEntry {
+    pub section: String,
     #[serde(default)]
     pub strength_id: Option<String>,
-    pub section: String,
     #[serde(default)]
     pub idx: Option<i64>,
 }
@@ -739,15 +739,15 @@ pub struct AttemptGradeProgressEvent {
     #[serde(default)]
     pub resource_type: Option<String>,
     #[serde(default)]
-    pub entry: Option<serde_json::Value>,
+    pub entry: Option<std::collections::HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttemptGradeReplacementEntry {
-    #[serde(default)]
-    pub improvement_id: Option<String>,
     pub section: String,
     pub replace: String,
+    #[serde(default)]
+    pub improvement_id: Option<String>,
     #[serde(default)]
     pub idx: Option<i64>,
 }
@@ -950,9 +950,9 @@ pub struct AttemptUserDeltaEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttemptUserProgressEvent {
     pub chat_id: String,
+    pub transcript: String,
     #[serde(default)]
     pub item_id: Option<String>,
-    pub transcript: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1037,16 +1037,16 @@ pub struct AuthDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthDraftFormState {
+    pub department_ids: Vec<String>,
+    pub protocol_ids: Vec<String>,
+    pub slug_ids: Vec<String>,
+    pub item_ids: Vec<String>,
     #[serde(default)]
     pub name_id: Option<String>,
     #[serde(default)]
     pub description_id: Option<String>,
     #[serde(default)]
     pub flag_id: Option<String>,
-    pub department_ids: Vec<String>,
-    pub protocol_ids: Vec<String>,
-    pub slug_ids: Vec<String>,
-    pub item_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1178,9 +1178,9 @@ pub struct AuthProtocolSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub auth_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<AuthFieldError>>,
 }
@@ -1359,88 +1359,78 @@ pub struct BenchmarkResponseOutput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_agent_csv_v5_agents_csv_post {
+pub struct Body_parse_agent_csv_agents_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_cohort_csv_v5_cohorts_csv_post {
+pub struct Body_parse_cohort_csv_cohorts_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_department_csv_v5_departments_csv_post {
+pub struct Body_parse_department_csv_departments_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_document_csv_v5_documents_csv_post {
+pub struct Body_parse_document_csv_documents_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_eval_csv_v5_evals_csv_post {
+pub struct Body_parse_eval_csv_evals_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_field_csv_v5_fields_csv_post {
+pub struct Body_parse_field_csv_fields_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_model_csv_v5_models_csv_post {
+pub struct Body_parse_model_csv_models_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_parameter_csv_v5_parameters_csv_post {
+pub struct Body_parse_parameter_csv_parameters_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_persona_csv_v5_personas_csv_post {
+pub struct Body_parse_persona_csv_personas_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_provider_csv_v5_providers_csv_post {
+pub struct Body_parse_provider_csv_providers_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_rubric_csv_v5_rubrics_csv_post {
+pub struct Body_parse_rubric_csv_rubrics_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_scenario_csv_v5_scenarios_csv_post {
+pub struct Body_parse_scenario_csv_scenarios_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_setting_csv_v5_settings_csv_post {
+pub struct Body_parse_setting_csv_settings_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_simulation_csv_v5_simulations_csv_post {
+pub struct Body_parse_simulation_csv_simulations_csv_post {
     pub file: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_parse_tool_csv_v5_tools_csv_post {
+pub struct Body_parse_tool_csv_tools_csv_post {
     pub file: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Body_token_token_post {
-    pub grant_type: String,
-    pub code: String,
-    pub redirect_uri: String,
-    pub client_id: String,
-    #[serde(default)]
-    pub client_secret: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2119,9 +2109,9 @@ pub struct CohortProfileSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CohortResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub cohort_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<CohortFieldError>>,
 }
@@ -2241,12 +2231,12 @@ pub struct ComposedDocsResponseInput {
     #[serde(rename = "type")]
     pub r#type: String,
     pub description: String,
-    #[serde(default)]
-    pub artifact: Option<DocsResponseInput>,
     pub entries: Vec<DocsResponseInput>,
     pub resources: Vec<DocsResponseInput>,
     pub permissions: Vec<OperationInfo>,
     pub api_operations: Vec<OperationInfo>,
+    #[serde(default)]
+    pub artifact: Option<DocsResponseInput>,
     #[serde(default)]
     pub page_metadata: Option<DocsApiResponse>,
 }
@@ -2257,12 +2247,12 @@ pub struct ComposedDocsResponseOutput {
     #[serde(rename = "type")]
     pub r#type: String,
     pub description: String,
-    #[serde(default)]
-    pub artifact: Option<DocsResponseOutput>,
     pub entries: Vec<DocsResponseOutput>,
     pub resources: Vec<DocsResponseOutput>,
     pub permissions: Vec<OperationInfo>,
     pub api_operations: Vec<OperationInfo>,
+    #[serde(default)]
+    pub artifact: Option<DocsResponseOutput>,
     #[serde(default)]
     pub page_metadata: Option<DocsApiResponse>,
 }
@@ -2275,9 +2265,7 @@ pub struct ConnectResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectionConfirmedPayload {
     pub sid: String,
-    #[serde(default)]
     pub profile_id: Option<String>,
-    #[serde(default)]
     pub guest_id: Option<String>,
     pub server_time: f64,
 }
@@ -2300,9 +2288,9 @@ pub struct ContentEntryOutput {
 pub struct ContinuationOption {
     pub scenarios: Vec<PreviousChatOption>,
     pub total_score: f64,
+    pub total_time: f64,
     #[serde(default)]
     pub total_percentage: Option<f64>,
-    pub total_time: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -3345,9 +3333,9 @@ pub struct DashboardInsights {
     #[serde(default)]
     pub scenario_composition: Option<String>,
     #[serde(default)]
-    pub persona: Option<std::collections::HashMap<String, Option<serde_json::Value>>>,
+    pub persona: Option<std::collections::HashMap<String, serde_json::Value>>,
     #[serde(default)]
-    pub cohort: Option<std::collections::HashMap<String, Option<serde_json::Value>>>,
+    pub cohort: Option<std::collections::HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -3870,13 +3858,13 @@ pub struct DepartmentDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DepartmentDraftFormState {
+    pub setting_ids: Vec<String>,
     #[serde(default)]
     pub name_id: Option<String>,
     #[serde(default)]
     pub description_id: Option<String>,
     #[serde(default)]
     pub flag_id: Option<String>,
-    pub setting_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -3946,9 +3934,9 @@ pub struct DepartmentNameSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DepartmentResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub department_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<DepartmentFieldError>>,
 }
@@ -4002,10 +3990,10 @@ pub struct DocsResponseInput {
     #[serde(rename = "type")]
     pub r#type: String,
     pub description: String,
-    #[serde(default)]
-    pub materialized_view: Option<MvInfo>,
     pub tables: Vec<TableInfo>,
     pub operations: Vec<OperationInfo>,
+    #[serde(default)]
+    pub materialized_view: Option<MvInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -4014,10 +4002,10 @@ pub struct DocsResponseOutput {
     #[serde(rename = "type")]
     pub r#type: String,
     pub description: String,
-    #[serde(default)]
-    pub materialized_view: Option<MvInfo>,
     pub tables: Vec<TableInfo>,
     pub operations: Vec<OperationInfo>,
+    #[serde(default)]
+    pub materialized_view: Option<MvInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -4084,10 +4072,6 @@ pub struct DocumentDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocumentDraftFormState {
-    #[serde(default)]
-    pub name_id: Option<String>,
-    #[serde(default)]
-    pub description_id: Option<String>,
     pub flag_ids: Vec<String>,
     pub department_ids: Vec<String>,
     pub file_ids: Vec<String>,
@@ -4095,6 +4079,10 @@ pub struct DocumentDraftFormState {
     pub text_ids: Vec<String>,
     pub parameter_field_ids: Vec<String>,
     pub parameter_ids: Vec<String>,
+    #[serde(default)]
+    pub name_id: Option<String>,
+    #[serde(default)]
+    pub description_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -4278,9 +4266,9 @@ pub struct DocumentParameterSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocumentResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub document_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<DocumentFieldError>>,
 }
@@ -4778,14 +4766,14 @@ pub struct EvalDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalDraftFormState {
-    #[serde(default)]
-    pub name_id: Option<String>,
-    #[serde(default)]
-    pub description_id: Option<String>,
     pub flag_ids: Vec<String>,
     pub department_ids: Vec<String>,
     pub model_ids: Vec<String>,
     pub rubric_ids: Vec<String>,
+    #[serde(default)]
+    pub name_id: Option<String>,
+    #[serde(default)]
+    pub description_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -4935,9 +4923,9 @@ pub struct EvalNameSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub eval_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<EvalFieldError>>,
 }
@@ -5428,14 +5416,14 @@ pub struct FieldDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldDraftFormState {
+    pub department_ids: Vec<String>,
+    pub conditional_parameter_ids: Vec<String>,
     #[serde(default)]
     pub name_id: Option<String>,
     #[serde(default)]
     pub description_id: Option<String>,
     #[serde(default)]
     pub flag_id: Option<String>,
-    pub department_ids: Vec<String>,
-    pub conditional_parameter_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -5505,9 +5493,9 @@ pub struct FieldNameSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub field_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<FieldFieldError>>,
 }
@@ -5679,11 +5667,11 @@ pub struct GenerateApiResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratePayload {
     pub artifact_types: Vec<ArtifactTypeItem>,
+    pub resource_types: Vec<ResourceTypeItem>,
     #[serde(default)]
     pub artifact_id: Option<serde_json::Value>,
     #[serde(default)]
     pub draft_id: Option<serde_json::Value>,
-    pub resource_types: Vec<ResourceTypeItem>,
     #[serde(default)]
     pub entry_types: Option<Vec<EntryTypeItem>>,
     #[serde(default)]
@@ -5699,7 +5687,7 @@ pub struct GeneratePayload {
     #[serde(default)]
     pub extra_messages: Option<Vec<std::collections::HashMap<String, String>>>,
     #[serde(default)]
-    pub metadata: Option<serde_json::Value>,
+    pub metadata: Option<std::collections::HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -5718,6 +5706,7 @@ pub struct GenerationCompleteEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenerationErrorEvent {
     pub artifact_type: String,
+    pub message: String,
     #[serde(default)]
     pub group_id: Option<String>,
     #[serde(default)]
@@ -5730,7 +5719,6 @@ pub struct GenerationErrorEvent {
     pub run_id: Option<String>,
     #[serde(default)]
     pub success: Option<bool>,
-    pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -5759,6 +5747,8 @@ pub struct GenerationMediaCompleteEvent {
 pub struct GenerationMediaProgressEvent {
     pub modality: String,
     pub artifact_type: String,
+    pub status: String,
+    pub message: String,
     #[serde(default)]
     pub group_id: Option<String>,
     #[serde(default)]
@@ -5767,8 +5757,6 @@ pub struct GenerationMediaProgressEvent {
     pub resource_type: Option<String>,
     #[serde(default)]
     pub resource_id: Option<String>,
-    pub status: String,
-    pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -6026,17 +6014,11 @@ pub struct GetAttemptDetailResponseOutput {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetAttemptResponse {
     pub attempt_id: String,
-    #[serde(default)]
     pub simulation_id: Option<String>,
-    #[serde(default)]
     pub profile_id: Option<String>,
-    #[serde(default)]
     pub user_persona_id: Option<String>,
-    #[serde(default)]
     pub personas_id: Option<String>,
-    #[serde(default)]
     pub cohort_id: Option<String>,
-    #[serde(default)]
     pub department_id: Option<String>,
     pub practice: bool,
     pub attempt_created_at: String,
@@ -6044,9 +6026,7 @@ pub struct GetAttemptResponse {
     pub num_chats: i64,
     pub is_archived: bool,
     pub scenario_ids: Vec<String>,
-    #[serde(default)]
     pub chat_entry_id: Option<String>,
-    #[serde(default)]
     pub attempt_chat_id: Option<String>,
 }
 
@@ -6211,9 +6191,9 @@ pub struct GetChatRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetChatResponse {
     pub chat_entry_id: String,
+    pub group_id: String,
     #[serde(default)]
     pub attempt_id: Option<String>,
-    pub group_id: String,
     #[serde(default)]
     pub draft_version: Option<i64>,
     #[serde(default)]
@@ -6857,8 +6837,6 @@ pub struct GetHealthResponse {
     pub latest_error: String,
 }
 
-pub type GetHomeRequest = serde_json::Value;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetHomeResponseInput {
     #[serde(default)]
@@ -7316,8 +7294,6 @@ pub struct GetPersonaResponse {
     pub generated: bool,
     pub mcp: bool,
 }
-
-pub type GetPracticeRequest = serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetPracticeResponseInput {
@@ -8279,18 +8255,15 @@ pub struct GetTestFeedbackResponse {
 pub struct GetTestGradeResponse {
     pub id: String,
     pub invocation_id: String,
-    #[serde(default)]
     pub run_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
     pub passed: bool,
     pub score: i64,
-    #[serde(default)]
     pub time_taken: Option<i64>,
     pub generated: bool,
     pub mcp: bool,
     pub active: bool,
-    #[serde(default)]
     pub call_id: Option<String>,
 }
 
@@ -8326,24 +8299,17 @@ pub struct GetTestInvocationGroupsResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetTestInvocationResponse {
     pub invocation_id: String,
-    #[serde(default)]
     pub test_id: Option<String>,
-    #[serde(default)]
     pub group_id: Option<String>,
     pub invocation_created_at: String,
     pub invocation_title: String,
     pub use_custom: bool,
     pub position: i64,
     pub invocation_completed: bool,
-    #[serde(default)]
     pub grade_id: Option<String>,
-    #[serde(default)]
     pub grade_score: Option<f64>,
-    #[serde(default)]
     pub grade_passed: Option<bool>,
-    #[serde(default)]
     pub grade_time_taken: Option<f64>,
-    #[serde(default)]
     pub rubric_id: Option<String>,
     #[serde(default)]
     pub agent_ids: Option<Vec<String>>,
@@ -8397,9 +8363,7 @@ pub struct GetTestInvocationRunsResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetTestResponse {
     pub test_id: String,
-    #[serde(default)]
     pub eval_id: Option<String>,
-    #[serde(default)]
     pub profile_id: Option<String>,
     pub department_ids: Vec<String>,
     pub test_name: String,
@@ -8596,11 +8560,11 @@ pub struct GradingStateData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GroupDetailCallItem {
     pub id: String,
+    pub created_at: String,
     #[serde(default)]
     pub template_name: Option<String>,
     #[serde(default)]
     pub file_path: Option<String>,
-    pub created_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10300,9 +10264,9 @@ pub struct MessageAttemptApiRequest {
     #[serde(default)]
     pub assistant_content: Option<String>,
     #[serde(default)]
-    pub hints: Option<Vec<app__routes__v5__attempt__message__HintEntry>>,
+    pub hints: Option<Vec<app__routes__attempt__message__HintEntry>>,
     #[serde(default)]
-    pub contents: Option<Vec<app__routes__v5__attempt__message__ContentEntry>>,
+    pub contents: Option<Vec<app__routes__attempt__message__ContentEntry>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10315,7 +10279,7 @@ pub struct MessageAttemptApiResponse {
     #[serde(default)]
     pub assistant_content: Option<String>,
     #[serde(default)]
-    pub hints: Option<Vec<serde_json::Value>>,
+    pub hints: Option<Vec<std::collections::HashMap<String, serde_json::Value>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10428,10 +10392,6 @@ pub struct ModelDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelDraftFormState {
-    #[serde(default)]
-    pub name_id: Option<String>,
-    #[serde(default)]
-    pub description_id: Option<String>,
     pub flag_ids: Vec<String>,
     pub department_ids: Vec<String>,
     pub modality_ids: Vec<String>,
@@ -10442,6 +10402,10 @@ pub struct ModelDraftFormState {
     pub temperature_level_ids: Vec<String>,
     pub value_ids: Vec<String>,
     pub voice_ids: Vec<String>,
+    #[serde(default)]
+    pub name_id: Option<String>,
+    #[serde(default)]
+    pub description_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10611,9 +10575,9 @@ pub struct ModelReasoningLevelSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub model_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<ModelFieldError>>,
 }
@@ -10724,7 +10688,7 @@ pub struct OperationInfo {
     pub description: String,
     pub params: Vec<ParamInfo>,
     #[serde(default)]
-    pub returns: Option<serde_json::Value>,
+    pub returns: Option<std::collections::HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10819,13 +10783,13 @@ pub struct ParameterDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParameterDraftFormState {
+    pub flag_ids: Vec<String>,
+    pub department_ids: Vec<String>,
+    pub field_ids: Vec<String>,
     #[serde(default)]
     pub name_id: Option<String>,
     #[serde(default)]
     pub description_id: Option<String>,
-    pub flag_ids: Vec<String>,
-    pub department_ids: Vec<String>,
-    pub field_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10939,9 +10903,9 @@ pub struct ParameterNameSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParameterResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub parameter_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<ParameterFieldError>>,
 }
@@ -12246,9 +12210,9 @@ pub struct PersonaParameterSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersonaResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub persona_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<PersonaFieldError>>,
 }
@@ -12381,9 +12345,9 @@ pub struct PricingRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PricingResources {
     #[serde(default)]
-    pub agents: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub agents: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub models: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub models: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12558,14 +12522,14 @@ pub struct ProfileDepartmentSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileDraftFormState {
-    #[serde(default)]
-    pub name_id: Option<String>,
-    #[serde(default)]
-    pub flag_id: Option<String>,
     pub department_ids: Vec<String>,
     pub email_ids: Vec<String>,
     pub role_ids: Vec<String>,
     pub request_limit_ids: Vec<String>,
+    #[serde(default)]
+    pub name_id: Option<String>,
+    #[serde(default)]
+    pub flag_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12705,9 +12669,9 @@ pub struct ProfileRequestLimitSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub profile_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<ProfileFieldError>>,
 }
@@ -12808,16 +12772,16 @@ pub struct ProviderDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderDraftFormState {
+    pub department_ids: Vec<String>,
+    pub endpoint_ids: Vec<String>,
+    pub key_ids: Vec<String>,
+    pub value_ids: Vec<String>,
     #[serde(default)]
     pub name_id: Option<String>,
     #[serde(default)]
     pub description_id: Option<String>,
     #[serde(default)]
     pub flag_id: Option<String>,
-    pub department_ids: Vec<String>,
-    pub endpoint_ids: Vec<String>,
-    pub key_ids: Vec<String>,
-    pub value_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12927,9 +12891,9 @@ pub struct ProviderNameSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub provider_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<ProviderFieldError>>,
 }
@@ -13552,16 +13516,16 @@ pub struct RubricDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RubricDraftFormState {
+    pub department_ids: Vec<String>,
+    pub point_ids: Vec<String>,
+    pub standard_group_ids: Vec<String>,
+    pub standard_ids: Vec<String>,
     #[serde(default)]
     pub name_id: Option<String>,
     #[serde(default)]
     pub description_id: Option<String>,
     #[serde(default)]
     pub flag_id: Option<String>,
-    pub department_ids: Vec<String>,
-    pub point_ids: Vec<String>,
-    pub standard_group_ids: Vec<String>,
-    pub standard_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13736,9 +13700,9 @@ pub struct RubricPointsSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RubricResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub rubric_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<RubricFieldError>>,
 }
@@ -14362,9 +14326,9 @@ pub struct ScenarioQuestionSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScenarioResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub scenario_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<ScenarioFieldError>>,
 }
@@ -14775,8 +14739,6 @@ pub struct SearchScenarioApiRequest {
     #[serde(default)]
     pub page_offset: Option<i64>,
 }
-
-pub type SearchSettingApiRequest = serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchSimulationApiRequest {
@@ -15205,19 +15167,13 @@ pub struct SettingDescriptionSection {
     #[serde(default)]
     pub link_tool_id: Option<String>,
     #[serde(default)]
-    pub resource: Option<serde_json::Value>,
+    pub resource: Option<std::collections::HashMap<String, serde_json::Value>>,
     #[serde(default)]
     pub resources: Option<Vec<serde_json::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SettingDraftFormState {
-    #[serde(default)]
-    pub name_id: Option<String>,
-    #[serde(default)]
-    pub description_id: Option<String>,
-    #[serde(default)]
-    pub flag_id: Option<String>,
     pub department_ids: Vec<String>,
     pub color_ids: Vec<String>,
     pub profile_ids: Vec<String>,
@@ -15225,6 +15181,12 @@ pub struct SettingDraftFormState {
     pub provider_key_ids: Vec<String>,
     pub auth_item_key_ids: Vec<String>,
     pub threshold_ids: Vec<String>,
+    #[serde(default)]
+    pub name_id: Option<String>,
+    #[serde(default)]
+    pub description_id: Option<String>,
+    #[serde(default)]
+    pub flag_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15286,7 +15248,7 @@ pub struct SettingNameSection {
     #[serde(default)]
     pub link_tool_id: Option<String>,
     #[serde(default)]
-    pub resource: Option<serde_json::Value>,
+    pub resource: Option<std::collections::HashMap<String, serde_json::Value>>,
     #[serde(default)]
     pub resources: Option<Vec<serde_json::Value>>,
 }
@@ -15334,9 +15296,9 @@ pub struct SettingProviderKeySection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SettingResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub setting_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<SettingFieldError>>,
 }
@@ -15546,9 +15508,9 @@ pub struct SimulationNameSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimulationResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub simulation_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<SimulationFieldError>>,
 }
@@ -16169,42 +16131,42 @@ pub struct TestProgressEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TestResources {
     #[serde(default)]
-    pub evals: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub evals: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub rubrics: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub rubrics: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub agents: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub agents: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub models: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub models: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub voices: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub voices: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub temperature_levels: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub temperature_levels: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub reasoning_levels: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub reasoning_levels: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub modalities: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub modalities: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub prompts: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub prompts: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub instructions: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub instructions: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub tools: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub tools: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
     #[serde(default)]
-    pub qualities: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub qualities: Option<std::collections::HashMap<String, std::collections::HashMap<String, serde_json::Value>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TestRunCompleteEvent {
     pub invocation_id: String,
     pub run_id: String,
-    #[serde(default)]
-    pub original_run_resource_id: Option<String>,
-    #[serde(default)]
-    pub tool_calls: Option<Vec<serde_json::Value>>,
     pub current_run: i64,
     pub total_runs: i64,
     pub remaining_runs: i64,
+    #[serde(default)]
+    pub original_run_resource_id: Option<String>,
+    #[serde(default)]
+    pub tool_calls: Option<Vec<std::collections::HashMap<String, serde_json::Value>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16247,11 +16209,11 @@ pub struct TestRunPayload {
 pub struct TestRunStartEvent {
     pub invocation_id: String,
     pub run_id: String,
-    #[serde(default)]
-    pub original_run_resource_id: Option<String>,
     pub current_run: i64,
     pub total_runs: i64,
     pub created_at: String,
+    #[serde(default)]
+    pub original_run_resource_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16436,10 +16398,6 @@ pub struct ToolDescriptionSection {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolDraftFormState {
-    #[serde(default)]
-    pub name_id: Option<String>,
-    #[serde(default)]
-    pub description_id: Option<String>,
     pub flag_ids: Vec<String>,
     pub department_ids: Vec<String>,
     pub arg_ids: Vec<String>,
@@ -16447,6 +16405,10 @@ pub struct ToolDraftFormState {
     pub args_output_ids: Vec<String>,
     pub artifact_ids: Vec<String>,
     pub operation_ids: Vec<String>,
+    #[serde(default)]
+    pub name_id: Option<String>,
+    #[serde(default)]
+    pub description_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16536,9 +16498,9 @@ pub struct ToolOperationSection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolResultItem {
     pub success: bool,
+    pub message: String,
     #[serde(default)]
     pub tool_id: Option<String>,
-    pub message: String,
     #[serde(default)]
     pub errors: Option<Vec<ToolFieldError>>,
 }
@@ -17487,21 +17449,21 @@ pub struct app__infra__scenario__types__DraftVideoValue {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct app__routes__v5__attempt__message__ContentEntry {
+pub struct app__routes__attempt__message__ContentEntry {
     pub content: String,
     #[serde(default)]
     pub persona_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct app__routes__v5__attempt__message__HintEntry {
+pub struct app__routes__attempt__message__HintEntry {
     pub hint: String,
     #[serde(default)]
     pub message_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct app__routes__v5__cohort__export__ExportCohortApiRequest {
+pub struct app__routes__cohort__export__ExportCohortApiRequest {
     #[serde(default)]
     pub cohort_id: Option<String>,
 }

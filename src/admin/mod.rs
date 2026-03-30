@@ -50,6 +50,18 @@ impl AdminClient {
         }
     }
 
+    // ── Health ──────────────────────────────────────────────
+
+    pub fn health(&self) -> Result<types::RootResponse> {
+        api_request(
+            &self.http,
+            reqwest::Method::GET,
+            &self.url("/"),
+            None,
+            Auth::None,
+        )
+    }
+
     // ── Auth ────────────────────────────────────────────────
 
     pub fn whoami(&self) -> Result<types::WhoamiResponse> {
@@ -496,7 +508,7 @@ impl AdminClient {
         )
     }
 
-    pub fn api_keys_usage(&self, org_id: &str, days: u32) -> Result<types::ApiKeyUsageResponse> {
+    pub fn api_keys_usage(&self, org_id: &str, days: u32) -> Result<serde_json::Value> {
         api_request(
             &self.http,
             reqwest::Method::GET,
@@ -513,7 +525,7 @@ impl AdminClient {
         org_id: &str,
         name: &str,
         redirect_uris: Vec<String>,
-    ) -> Result<types::OAuthClientResponse> {
+    ) -> Result<types::OAuthClientCreateResponse> {
         api_request(
             &self.http,
             reqwest::Method::POST,
@@ -576,7 +588,7 @@ impl AdminClient {
 
     // ── AI Gateway ───────────────────────────────────────────
 
-    pub fn ai_pricing(&self) -> Result<types::AiPricingResponse> {
+    pub fn ai_pricing(&self) -> Result<types::GatewayPricingResponse> {
         api_request(
             &self.http,
             reqwest::Method::GET,
@@ -675,7 +687,7 @@ impl AdminClient {
         org_id: &str,
         email: &str,
         role: &str,
-    ) -> Result<types::InviteResponse> {
+    ) -> Result<serde_json::Value> {
         api_request(
             &self.http,
             reqwest::Method::POST,
@@ -689,7 +701,7 @@ impl AdminClient {
         &self,
         org_id: &str,
         pending_only: bool,
-    ) -> Result<types::InviteListResponse> {
+    ) -> Result<serde_json::Value> {
         let query = if !pending_only {
             "?pending_only=false"
         } else {
@@ -1058,8 +1070,7 @@ mod tests {
             .usage_daily("org-1", Some("2026-03-01"), Some("2026-03-28"))
             .unwrap();
         assert_eq!(resp.total_simulations, 10);
-        assert_eq!(resp.daily[0].outcomes, Some(8));
-        assert_eq!(resp.daily[0].attempts_started, Some(12));
+        assert_eq!(resp.daily[0].simulation_count, 10);
         mock.assert();
     }
 
@@ -1076,10 +1087,7 @@ mod tests {
         let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.usage_summary("org-1").unwrap();
         assert_eq!(resp.plan, Some("payg".into()));
-        let meta = resp.meta.unwrap();
-        assert_eq!(meta.total_outcomes, Some(50));
-        assert_eq!(meta.discount_pct, Some(20));
-        assert_eq!(meta.net, Some("$80.00".into()));
+        assert_eq!(resp.estimated_cost, Some("$49.00".into()));
         mock.assert();
     }
 
@@ -1153,9 +1161,9 @@ mod tests {
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.api_keys_usage("org-1", 7).unwrap();
-        assert_eq!(resp.total_requests, 150);
-        assert_eq!(resp.total_tokens, 50000);
-        assert_eq!(resp.total_cost_cents, 250);
+        assert_eq!(resp["total_requests"], 150);
+        assert_eq!(resp["total_tokens"], 50000);
+        assert_eq!(resp["total_cost_cents"], 250);
         mock.assert();
     }
 
@@ -1174,7 +1182,7 @@ mod tests {
             .oauth_clients_create("org-1", "My App", vec!["https://app.com/callback".into()])
             .unwrap();
         assert_eq!(resp.client_id, "ll_client_abc");
-        assert_eq!(resp.client_secret, Some("secret123".into()));
+        assert_eq!(resp.client_secret, "secret123");
         assert_eq!(resp.name, "My App");
         mock.assert();
     }
@@ -1221,7 +1229,7 @@ mod tests {
             .mock("GET", "/ai/pricing")
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(r#"{"tiers": [{"id": "light", "name": "Light", "description": "Local LLMs", "cost": "Free", "models": [{"name": "qwen-3.5-9b", "type": "llm", "description": "Fast local LLM"}]}]}"#)
+            .with_body(r#"{"tiers": [{"id": "light", "name": "Light", "description": "Local LLMs", "cost": "Free", "models": [{"name": "qwen-3.5-9b", "type": "llm", "description": "Fast local LLM"}]}], "rate_limits": {"description": "Per-plan rate limits", "plans": {}}}"#)
             .create();
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
@@ -1372,9 +1380,9 @@ mod tests {
         let resp = client
             .org_invite("org-1", "new@example.com", "member")
             .unwrap();
-        assert_eq!(resp.email, "new@example.com");
-        assert_eq!(resp.role, "member");
-        assert_eq!(resp.claimed, Some(false));
+        assert_eq!(resp["email"], "new@example.com");
+        assert_eq!(resp["role"], "member");
+        assert_eq!(resp["claimed"], false);
         mock.assert();
     }
 
@@ -1390,8 +1398,9 @@ mod tests {
 
         let client = AdminClient::new_with_token(&server.url(), "tok");
         let resp = client.org_invites_list("org-1", true).unwrap();
-        assert_eq!(resp.invites.len(), 1);
-        assert_eq!(resp.invites[0].email, "a@b.com");
+        let invites = resp["invites"].as_array().unwrap();
+        assert_eq!(invites.len(), 1);
+        assert_eq!(invites[0]["email"], "a@b.com");
         mock.assert();
     }
 }

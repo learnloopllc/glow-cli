@@ -396,6 +396,16 @@ pub(crate) fn cmd_health(client: &GlowClient, mode: OutputMode) -> Result<()> {
     use colored::Colorize;
 
     let response = client.health()?;
+
+    // Check API version compatibility
+    if let Some(ref server_version) = response.version {
+        crate::api_common::check_api_version(
+            server_version,
+            crate::glow::types::PINNED_API_VERSION,
+            "Glow API",
+        );
+    }
+
     output::print_result(mode, &response, |resp| {
         let indicator = if resp.status == "ok" {
             "●".green()

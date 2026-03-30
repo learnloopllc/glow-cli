@@ -3,6 +3,9 @@
 // types_gen.rs is auto-generated from the glow-api OpenAPI spec.
 // Add aliases or custom types here.
 
+/// Pinned API version this CLI was built against (from api-versions.json via sync-types)
+pub const PINNED_API_VERSION: &str = "2.6.0";
+
 #[allow(unused_imports)]
 pub use super::api::latest::*;
 

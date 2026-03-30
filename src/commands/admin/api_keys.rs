@@ -46,8 +46,8 @@ pub(crate) fn cmd_api_keys_list(
                 k.name.bold(),
                 k.key_prefix.dimmed()
             );
-            if let Some(scopes) = &k.scopes {
-                println!("    Scopes: {}", scopes.join(", "));
+            if !k.scopes.is_empty() {
+                println!("    Scopes: {}", k.scopes.join(", "));
             }
             if let Some(limit) = k.spend_limit_cents {
                 println!("    Spend limit: ${:.2}", limit as f64 / 100.0);
@@ -89,12 +89,11 @@ pub(crate) fn cmd_api_keys_usage(
     let resp = client.api_keys_usage(org_id, days)?;
     output::print_result(mode, &resp, |r| {
         println!("{} (last {} days)\n", "AI Usage".bold(), days);
-        println!("  Total Requests: {}", r.total_requests);
-        println!("  Total Tokens:   {}", r.total_tokens);
-        println!(
-            "  Total Cost:     ${:.2}",
-            r.total_cost_cents as f64 / 100.0
-        );
+        println!("  Total Requests: {}", r["total_requests"]);
+        println!("  Total Tokens:   {}", r["total_tokens"]);
+        if let Some(cost) = r["total_cost_cents"].as_f64() {
+            println!("  Total Cost:     ${:.2}", cost / 100.0);
+        }
     });
     Ok(())
 }

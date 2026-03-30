@@ -231,13 +231,15 @@ pub(crate) fn cmd_org_invite(
 
     let resp = client.org_invite(org_id, email, role)?;
     output::print_result(mode, &resp, |r| {
+        let email_str = r["email"].as_str().unwrap_or("");
+        let role_str = r["role"].as_str().unwrap_or("");
         println!(
             "{} Invited {} as {}",
             "OK".green().bold(),
-            r.email.bold(),
-            r.role
+            email_str.bold(),
+            role_str
         );
-        if let Some(expires) = &r.expires_at {
+        if let Some(expires) = r["expires_at"].as_str() {
             println!("  Expires: {}", expires.dimmed());
         }
     });
@@ -254,22 +256,26 @@ pub(crate) fn cmd_org_invites_list(
 
     let resp = client.org_invites_list(org_id, pending_only)?;
     output::print_result(mode, &resp, |r| {
-        println!("{} ({} invites)\n", "Invitations".bold(), r.invites.len());
-        for inv in &r.invites {
-            let claimed = if inv.claimed == Some(true) {
-                "claimed".green().to_string()
-            } else {
-                "pending".yellow().to_string()
-            };
-            println!(
-                "  {} {} [{}] {}",
-                inv.id.dimmed(),
-                inv.email.bold(),
-                inv.role,
-                claimed
-            );
-            if let Some(expires) = &inv.expires_at {
-                println!("    Expires: {}", expires.dimmed());
+        let invites = r["invites"].as_array();
+        let count = invites.map(|a| a.len()).unwrap_or(0);
+        println!("{} ({} invites)\n", "Invitations".bold(), count);
+        if let Some(invites) = invites {
+            for inv in invites {
+                let claimed = if inv["claimed"].as_bool() == Some(true) {
+                    "claimed".green().to_string()
+                } else {
+                    "pending".yellow().to_string()
+                };
+                println!(
+                    "  {} {} [{}] {}",
+                    inv["id"].as_str().unwrap_or("").dimmed(),
+                    inv["email"].as_str().unwrap_or("").bold(),
+                    inv["role"].as_str().unwrap_or(""),
+                    claimed
+                );
+                if let Some(expires) = inv["expires_at"].as_str() {
+                    println!("    Expires: {}", expires.dimmed());
+                }
             }
         }
     });
