@@ -1,4 +1,9 @@
-use axum::{extract::Json, response::IntoResponse, routing::{get, post}, Router};
+use axum::{
+    extract::Json,
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
+};
 use serde_json::json;
 use std::process::Command;
 
