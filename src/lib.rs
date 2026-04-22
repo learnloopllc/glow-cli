@@ -298,7 +298,7 @@ fn resolve_glow_url(cli_url: Option<&str>, cfg: &config::Config) -> String {
 
 // ── Main ───────────────────────────────────────────────────────
 
-fn main() -> Result<()> {
+pub fn run() -> Result<()> {
     // Hidden: dump CLI spec as JSON for docs generation
     if std::env::args().any(|a| a == "--dump-cli-spec") {
         let spec = build_cli_spec();

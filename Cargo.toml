@@ -1,18 +1,13 @@
 [package]
 name = "glow-cli"
-version = "2.11.0"
+version = "2.11.1"
 edition = "2021"
 default-run = "glow"
 
-# Two binaries: "glow" (full name) and "glw" (short alias)
-# Both point to the same code — like having a symlink
-[[bin]]
+# Library crate — both bins (glow, glw) in src/bin/ are thin wrappers around run().
+[lib]
 name = "glow"
-path = "src/main.rs"
-
-[[bin]]
-name = "glw"
-path = "src/main.rs"
+path = "src/lib.rs"
 
 [dependencies]
 axum = "0.8"
